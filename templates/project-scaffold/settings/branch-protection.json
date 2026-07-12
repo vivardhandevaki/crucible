@@ -1,0 +1,54 @@
+{
+  "_comment": "DESIRED end-state ruleset for a Crucible CONSUMER repo's default branch. Emitted by `crucible init` and applied via `settings/apply.sh`. The required_status_checks rule is applied only with --with-checks, once the consumer's Gauntlet (reusable workflow) emits these contexts. The project owner (Admin role) is on the bypass list so a solo owner can merge their own protected-path PRs (GitHub blocks self-approval); agents still hit every gate.",
+  "name": "crucible-main",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "require_code_owner_review": true,
+        "dismiss_stale_reviews_on_push": true,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["squash", "merge"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "build" },
+          { "context": "style" },
+          { "context": "archunit" },
+          { "context": "tests" },
+          { "context": "mutation" },
+          { "context": "sast" },
+          { "context": "deps" },
+          { "context": "traceability" },
+          { "context": "diff-size" },
+          { "context": "legitimacy" },
+          { "context": "reviewer-verdict" }
+        ]
+      }
+    }
+  ]
+}

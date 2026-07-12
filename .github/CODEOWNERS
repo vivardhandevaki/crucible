@@ -1,0 +1,10 @@
+# CODEOWNERS for the Crucible FRAMEWORK repo.
+#
+# The entire framework is the trusted computing base for every downstream
+# consumer repo, so the owner reviews all of it. (Per ADR 0001, this repo is
+# governed conventionally — owner-reviewed PRs — not through the Crucible loop.)
+#
+# Note: the protected-path CODEOWNERS that a CONSUMER repo gets is a separate,
+# tokenized template at templates/project-scaffold/.github/CODEOWNERS.
+
+*   @vivardhandevaki

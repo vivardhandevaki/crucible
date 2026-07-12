@@ -1,0 +1,47 @@
+{
+  "_comment": "Ruleset for THIS framework repo's default branch (conventional governance per ADR 0001). Owner (Admin role) is on the bypass list so a solo maintainer can merge their own PRs (GitHub blocks self-approval). required_status_checks lists this repo's OWN ci jobs (not the consumer Gauntlet); they are applied only with `apply.sh --with-checks` once ci.yml emits them. The consumer-repo ruleset is a separate template at templates/project-scaffold/settings/branch-protection.json.",
+  "name": "crucible-framework-main",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": {
+      "include": ["~DEFAULT_BRANCH"],
+      "exclude": []
+    }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": 5,
+      "actor_type": "RepositoryRole",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 0,
+        "require_code_owner_review": true,
+        "dismiss_stale_reviews_on_push": true,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["squash"]
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "lint" },
+          { "context": "cli-tests" },
+          { "context": "console-build" },
+          { "context": "console-tests" }
+        ]
+      }
+    }
+  ]
+}

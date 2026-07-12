@@ -1,0 +1,18 @@
+# CODEOWNERS for a Crucible-governed CONSUMER repo.
+#
+# This is a TEMPLATE emitted by `crucible init`. The token {{OWNER}} is replaced
+# with the consumer project's owner GitHub handle at scaffold time.
+#
+# Protected paths (the trusted computing base) require owner review before merge.
+# Combined with branch protection ("require review from Code Owners"), this makes
+# the protected paths unwritable from implementation branches without explicit
+# human approval. See CRUCIBLE-CONCEPT.md §6.2 and Core Principle 6.
+
+/specs/              {{OWNER}}
+/oracles/            {{OWNER}}
+/ci/                 {{OWNER}}
+/skills/             {{OWNER}}
+/openspec/schemas/   {{OWNER}}
+/.github/            {{OWNER}}
+/settings/           {{OWNER}}
+/CLAUDE.md           {{OWNER}}
