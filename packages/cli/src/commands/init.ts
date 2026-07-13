@@ -12,7 +12,7 @@
  */
 
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 import type { CmdContext, CmdResult } from "../lib/context.js";
 import { resolveAssets } from "../lib/assets.js";
 
@@ -29,7 +29,11 @@ const CONSUMER_DIRS = [
   "src",
 ];
 
-function copyScaffold(scaffoldDir: string, cwd: string, owner: string, lang: string): { copied: string[]; skipped: string[] } {
+function copyScaffold(
+  scaffoldDir: string,
+  cwd: string,
+  tokens: Record<string, string>,
+): { copied: string[]; skipped: string[] } {
   const copied: string[] = [];
   const skipped: string[] = [];
   const walk = (dir: string): void => {
@@ -47,10 +51,10 @@ function copyScaffold(scaffoldDir: string, cwd: string, owner: string, lang: str
         continue;
       }
       mkdirSync(join(dest, ".."), { recursive: true });
-      const content = readFileSync(src, "utf8")
-        .replaceAll("{{OWNER}}", `@${owner.replace(/^@/, "")}`)
-        .replaceAll("{{CRUCIBLE_REF}}", CRUCIBLE_REF)
-        .replaceAll("{{LANG}}", lang);
+      let content = readFileSync(src, "utf8");
+      for (const [token, value] of Object.entries(tokens)) {
+        content = content.replaceAll(`{{${token}}}`, value);
+      }
       writeFileSync(dest, content, { mode: entry.name.endsWith(".sh") ? 0o755 : 0o644 });
       copied.push(rel);
     }
@@ -114,10 +118,23 @@ export async function cmdInit(
   }
 
   // 3. Project scaffold (never overwrites).
-  const { copied, skipped } = copyScaffold(assets.scaffoldDir, ctx.cwd, opts.owner, opts.lang);
+  const tokens: Record<string, string> = {
+    OWNER: `@${opts.owner.replace(/^@/, "")}`,
+    CRUCIBLE_REF,
+    LANG: opts.lang,
+    PROJECT_NAME: basename(ctx.cwd),
+  };
+  const { copied, skipped } = copyScaffold(assets.scaffoldDir, ctx.cwd, tokens);
   lines.push(`scaffold: copied ${copied.length} file(s)${skipped.length ? `, skipped ${skipped.length} existing` : ""}`);
   for (const d of CONSUMER_DIRS) mkdirSync(join(ctx.cwd, d), { recursive: true });
   lines.push(`dirs: ${CONSUMER_DIRS.join(", ")}`);
+
+  // 3a. Language profile (build system + gate plugins + starter oracles).
+  const profileDir = join(assets.scaffoldDir, "..", `${opts.lang}-profile`);
+  if (existsSync(profileDir)) {
+    const prof = copyScaffold(profileDir, ctx.cwd, tokens);
+    lines.push(`${opts.lang}-profile: copied ${prof.copied.length} file(s)${prof.skipped.length ? `, skipped ${prof.skipped.length} existing` : ""}`);
+  }
 
   // 3b. Crucible skills -> .claude/skills/ (never overwrites).
   let skillCount = 0;
@@ -149,10 +166,11 @@ export async function cmdInit(
   lines.push(
     "",
     "next steps:",
-    "  1. review + commit the scaffold, push to GitHub",
-    "  2. apply branch protection: settings/apply.sh",
-    "  3. add the ANTHROPIC_API_KEY repo secret (reviewer agent): gh secret set ANTHROPIC_API_KEY",
-    "  4. start your first feature: crucible new <ID> --title <t> --change <slug>",
+    "  1. generate the Gradle wrapper (java profile): gradle wrapper --gradle-version 9.6.1",
+    "  2. review + commit the scaffold, push to GitHub",
+    "  3. apply branch protection: settings/apply.sh",
+    "  4. add the ANTHROPIC_API_KEY repo secret (reviewer agent): gh secret set ANTHROPIC_API_KEY",
+    "  5. start your first feature: crucible new <ID> --title <t> --change <slug>",
   );
   return { exitCode: 0, data: { copied, skipped, lang: opts.lang }, lines };
 }

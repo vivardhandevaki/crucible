@@ -1,0 +1,16 @@
+# Dependency allowlist (protected path) — the deps gate rejects any coordinate
+# in the dependency graph that is not covered here. Group-level entries allowed.
+# Adding a dependency = a PR to this file = owner review by construction.
+allow:
+  # Test/verification stack (the java-profile scaffold itself)
+  - org.junit.jupiter
+  - org.junit.platform
+  - org.junit # BOM
+  - org.opentest4j
+  - org.apiguardian
+  - net.jqwik
+  - com.tngtech.archunit
+  - org.pitest
+  # Transitives of the above
+  - org.slf4j
+  - com.google.code.findbugs
