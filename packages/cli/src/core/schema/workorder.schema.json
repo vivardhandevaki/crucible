@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vivardhandevaki/crucible/schemas/workorder.schema.json",
+  "title": "Crucible work order",
+  "description": "The per-feature orchestration manifest: state, scope, constraints, and references to the OpenSpec change and oracle IDs. The authorization to do work.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "state",
+    "change",
+    "oracles",
+    "modules_allowed",
+    "paths_forbidden",
+    "max_diff_lines",
+    "max_iterations",
+    "history"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9]*-[0-9]+$",
+      "description": "Work-order ID, e.g. OMS-142."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "DRAFT_SPEC",
+        "SPEC_APPROVED",
+        "ORACLES_AUTHORED",
+        "ORACLES_APPROVED",
+        "PACKAGED",
+        "IMPLEMENTING",
+        "PR_OPEN",
+        "GATES_GREEN",
+        "AI_REVIEWED",
+        "ROUTED_AUTO",
+        "ROUTED_HUMAN",
+        "MERGED",
+        "CANARY",
+        "DONE",
+        "ARCHIVED",
+        "ESCALATED"
+      ]
+    },
+    "change": {
+      "type": "string",
+      "pattern": "^openspec/changes/[a-z0-9][a-z0-9-]*/?$",
+      "description": "Path to the OpenSpec change folder this work order authorizes."
+    },
+    "oracles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^ORA-[A-Z0-9-]+-[0-9]+[a-z]$"
+      },
+      "uniqueItems": true,
+      "description": "Oracle IDs from the change's oracles.md that judge this work order. Empty until oracles are authored."
+    },
+    "modules_allowed": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "description": "Paths the implementer may touch. Must be non-empty before packaging."
+    },
+    "paths_forbidden": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true,
+      "minItems": 1,
+      "description": "Always includes the protected paths; the CLI injects them and semantic validation rejects any subset of the protected list."
+    },
+    "max_diff_lines": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10000,
+      "default": 400
+    },
+    "max_iterations": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 6
+    },
+    "pr_sequence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["n", "scope"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1 },
+          "scope": { "type": "string", "minLength": 1 }
+        }
+      },
+      "description": "Optional planned decomposition into a PR sequence."
+    },
+    "escalation": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file", "created_at"],
+          "properties": {
+            "file": { "type": "string", "minLength": 1 },
+            "created_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      ]
+    },
+    "history": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["state", "at", "by"],
+        "properties": {
+          "state": { "$ref": "#/properties/state" },
+          "at": { "type": "string", "format": "date-time" },
+          "by": { "type": "string", "minLength": 1 }
+        }
+      },
+      "description": "Append-only audit trail of state transitions."
+    }
+  }
+}
