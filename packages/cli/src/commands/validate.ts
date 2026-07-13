@@ -29,21 +29,9 @@ const CLI_ADVANCEABLE: ReadonlyArray<readonly [State, State]> = [
   ["ESCALATED", "PACKAGED"],
 ];
 
-/** Minimal oracles.md table parse: rows of (oracleIds[], implPath, status). */
-export function parseOracleRows(
-  md: string,
-): Array<{ ids: string[]; implPath: string; status: string }> {
-  return md
-    .split("\n")
-    .filter((l) => l.trim().startsWith("|"))
-    .map((l) => l.split("|").map((c) => c.trim()))
-    .filter((cols) => cols.length >= 7 && /ORA-/.test(cols[3] ?? ""))
-    .map((cols) => ({
-      ids: (cols[3] ?? "").split(/[,\s]+/).filter((s) => s.startsWith("ORA-")),
-      implPath: cols[5] ?? "",
-      status: (cols[6] ?? "").toUpperCase(),
-    }));
-}
+// Oracle-map parsing lives in core (shared with package + traceability gate).
+import { parseOracleRows } from "../core/oracles.js";
+export { parseOracleRows };
 
 function listSpecDeltas(changeDir: string): string[] {
   const specsDir = join(changeDir, "specs");
