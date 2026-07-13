@@ -17,3 +17,10 @@ jobs:
     uses: vivardhandevaki/crucible/.github/workflows/gauntlet-core.yml@{{CRUCIBLE_REF}}
     with:
       crucible-ref: "{{CRUCIBLE_REF}}"
+
+  review:
+    uses: vivardhandevaki/crucible/.github/workflows/reviewer.yml@{{CRUCIBLE_REF}}
+    with:
+      crucible-ref: "{{CRUCIBLE_REF}}"
+    secrets:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

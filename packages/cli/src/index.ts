@@ -16,6 +16,7 @@ import { cmdEscalations } from "./commands/escalations.js";
 import { cmdInit } from "./commands/init.js";
 import { cmdPackage } from "./commands/package.js";
 import { cmdRun } from "./commands/run.js";
+import { cmdReview } from "./commands/review.js";
 import { gateLegitimacy } from "./gates/legitimacy.js";
 import { gateDiffSize } from "./gates/diffsize.js";
 import { gateTraceability } from "./gates/traceability.js";
@@ -102,6 +103,22 @@ program
   .option("--json", "machine-readable output", false)
   .action((o: { json: boolean }) =>
     run(() => cmdEscalations(defaultContext(process.cwd())), o.json));
+
+program
+  .command("review")
+  .description("run the reviewer agent (diff+spec+rubric only; fail-closed verdict JSON)")
+  .requiredOption("--base <ref>", "merge-base ref (e.g. origin/main)")
+  .option("--id <id>", "work-order ID (or provide --pr-body-file)")
+  .option("--pr-body-file <path>", "file containing the PR body")
+  .option("--model <model>", "reviewer model", "claude-sonnet-4-6")
+  .option("--out <path>", "verdict output path", "review-verdict.json")
+  .option("--json", "machine-readable output", false)
+  .action((o: { base: string; id?: string; prBodyFile?: string; model: string; out: string; json: boolean }) =>
+    run(() => cmdReview(defaultContext(process.cwd()), {
+      base: o.base, model: o.model, out: o.out,
+      ...(o.id !== undefined ? { id: o.id } : {}),
+      ...(o.prBodyFile !== undefined ? { prBody: readFileSync(o.prBodyFile, "utf8") } : {}),
+    }), o.json));
 
 const gate = program
   .command("gate")

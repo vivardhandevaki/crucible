@@ -1,0 +1,35 @@
+# Reviewer rubric v1 (plan §4.5). Each item: id, question, required evidence form.
+# The reviewer agent answers EVERY item with PASS | FLAG | FAIL + evidence.
+# Grows only via the ratchet (a new line per escaped defect class) — reviewed PRs.
+version: 1
+items:
+  - id: R1
+    question: Does any unvalidated external input reach a query, command, path, or deserialization?
+    evidence: Cite file:line for each finding, or state "none found" after checking every input path in the diff.
+  - id: R2
+    question: Were any test files touched? If so, was any assertion weakened, deleted, or made vacuous?
+    evidence: List each touched test file with a verdict; quote any weakened assertion before/after.
+  - id: R3
+    question: Are there new dependencies or version changes? Are they justified and expected for this change?
+    evidence: List each coordinate change; FAIL if any dependency appears without an allowlist change in this PR's scope.
+  - id: R4
+    question: Do the touched paths match the change's apparent intent (no scope creep)?
+    evidence: Name any file whose changes are unrelated to the spec delta.
+  - id: R5
+    question: Is any loop or recursion bound data- or attacker-controlled?
+    evidence: Cite file:line and the controlling input, or "none found".
+  - id: R6
+    question: Are any secrets, tokens, or PII present in code or log statements?
+    evidence: Cite file:line, or "none found" after checking all new log/string literals.
+  - id: R7
+    question: Concurrency — shared mutable state, check-then-act races, or transaction boundaries that violate the spec's atomicity requirements?
+    evidence: Cite the state/boundary examined and why it is or is not sound.
+  - id: R8
+    question: Error handling — swallowed exceptions or catch-and-continue on integrity-relevant paths?
+    evidence: Cite each catch block touched by the diff with a verdict.
+  - id: R9
+    question: Semantic drift — was behavior changed adjacent to but OUTSIDE the spec delta?
+    evidence: Name the behavior and the spec section that does not cover it, or "none found".
+  - id: R10
+    question: Should this diff be split (approaching the size cap or mixing unrelated concerns)?
+    evidence: State the concern boundaries if mixing is present.
