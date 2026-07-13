@@ -1,0 +1,19 @@
+# The Gauntlet — emitted by `crucible init`.
+#
+# Thin wrapper over the framework's reusable workflow; the gate logic lives in
+# the framework so every consumer runs the same, versioned enforcement.
+# Contexts appear as "gauntlet / <gate>" and are required by branch protection
+# (settings/branch-protection.json). Upgrade = bump the pinned ref.
+#
+# `harness-change` labeled PRs skip module-map checks but touch protected
+# paths, so CODEOWNERS review is required by construction.
+
+name: gauntlet
+on:
+  pull_request:
+
+jobs:
+  gauntlet:
+    uses: vivardhandevaki/crucible/.github/workflows/gauntlet-core.yml@{{CRUCIBLE_REF}}
+    with:
+      crucible-ref: "{{CRUCIBLE_REF}}"

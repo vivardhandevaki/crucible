@@ -1,0 +1,10 @@
+# Gate tuning for this consumer repo — protected path (CODEOWNERS).
+# Changing a threshold is a reviewed one-line PR (the ratchet).
+
+# Paths excluded from the diff-size gate (lockfiles/dist/build/bundle are
+# always excluded; these are additive).
+diff_exclude: []
+
+# PIT mutation-score threshold (Java profile; gate lands in Phase 4).
+# Ratchet plan: 75 -> 80 -> 85 as the suite matures.
+mutation_threshold: 75

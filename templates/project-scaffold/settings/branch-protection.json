@@ -36,17 +36,17 @@
         "strict_required_status_checks_policy": false,
         "do_not_enforce_on_create": false,
         "required_status_checks": [
-          { "context": "build" },
-          { "context": "style" },
-          { "context": "archunit" },
-          { "context": "tests" },
-          { "context": "mutation" },
-          { "context": "sast" },
-          { "context": "deps" },
-          { "context": "traceability" },
-          { "context": "diff-size" },
-          { "context": "legitimacy" },
-          { "context": "reviewer-verdict" }
+          { "context": "gauntlet / legitimacy" },
+          { "context": "gauntlet / traceability" },
+          { "context": "gauntlet / diff-size" },
+          { "context": "gauntlet / build" },
+          { "context": "gauntlet / style" },
+          { "context": "gauntlet / archunit" },
+          { "context": "gauntlet / tests" },
+          { "context": "gauntlet / mutation" },
+          { "context": "gauntlet / sast" },
+          { "context": "gauntlet / deps" },
+          { "context": "gauntlet / reviewer-verdict" }
         ]
       }
     }

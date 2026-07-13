@@ -1,0 +1,107 @@
+# gauntlet-core — the language-neutral Gauntlet gates as a REUSABLE workflow.
+#
+# Consumer repos call this from a thin wrapper (emitted by `crucible init`):
+#   jobs:
+#     gauntlet:
+#       uses: vivardhandevaki/crucible/.github/workflows/gauntlet-core.yml@<pinned>
+#
+# Each job is one required status check in the consumer's branch protection
+# (context: "gauntlet / <job>"). Language-profile gates (build/style/tests/
+# mutation/sast/deps for Java) live in a separate reusable workflow (Phase 4).
+#
+# The gates themselves are `crucible gate …` commands — the same shared-core
+# implementation the CLI uses. This workflow is deliberately a thin caller.
+
+name: gauntlet-core
+on:
+  workflow_call:
+    inputs:
+      crucible-ref:
+        description: Framework ref the gate implementation is built from (pin a tag)
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  legitimacy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # gates diff against the merge base
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: vivardhandevaki/crucible
+          ref: ${{ inputs.crucible-ref }}
+          path: .crucible
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22.23.1"
+      - name: Build crucible CLI
+        working-directory: .crucible/packages/cli
+        run: npm ci --no-fund --no-audit && npm run build
+      - name: Gate legitimacy
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
+        run: |
+          printf '%s' "$PR_BODY" > /tmp/pr-body.txt
+          # shellcheck disable=SC2086 — label names are single tokens by convention
+          node .crucible/packages/cli/dist/index.js gate legitimacy \
+            --base "origin/${{ github.base_ref }}" \
+            --pr-body-file /tmp/pr-body.txt \
+            ${LABELS:+--label $LABELS}
+
+  traceability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: vivardhandevaki/crucible
+          ref: ${{ inputs.crucible-ref }}
+          path: .crucible
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22.23.1"
+      - name: Build crucible CLI
+        working-directory: .crucible/packages/cli
+        run: npm ci --no-fund --no-audit && npm run build
+      - name: Gate traceability
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > /tmp/pr-body.txt
+          node .crucible/packages/cli/dist/index.js gate traceability \
+            --pr-body-file /tmp/pr-body.txt \
+            --main-ref "origin/${{ github.event.repository.default_branch }}"
+
+  diff-size:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: vivardhandevaki/crucible
+          ref: ${{ inputs.crucible-ref }}
+          path: .crucible
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "22.23.1"
+      - name: Build crucible CLI
+        working-directory: .crucible/packages/cli
+        run: npm ci --no-fund --no-audit && npm run build
+      - name: Gate diff-size
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > /tmp/pr-body.txt
+          node .crucible/packages/cli/dist/index.js gate diff-size \
+            --base "origin/${{ github.base_ref }}" \
+            --pr-body-file /tmp/pr-body.txt
