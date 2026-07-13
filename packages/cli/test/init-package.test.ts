@@ -52,6 +52,16 @@ describe("crucible init", () => {
     expect(existsSync(join(cwd, "settings/apply.sh"))).toBe(true);
     expect(existsSync(join(cwd, ".github/pull_request_template.md"))).toBe(true);
 
+    // CLAUDE.md with language profile substituted
+    const claudeMd = readFileSync(join(cwd, "CLAUDE.md"), "utf8");
+    expect(claudeMd).toContain("Language profile: **java**");
+    expect(claudeMd).not.toContain("{{LANG}}");
+
+    // skills installed under .claude/skills/
+    expect(existsSync(join(cwd, ".claude/skills/crucible-writing-oracles/SKILL.md"))).toBe(true);
+    expect(existsSync(join(cwd, ".claude/skills/crucible-escalation-protocol/SKILL.md"))).toBe(true);
+    expect(existsSync(join(cwd, ".claude/skills/crucible-java-conventions/SKILL.md"))).toBe(true);
+
     // consumer dirs + manifest
     expect(existsSync(join(cwd, "oracles/properties"))).toBe(true);
     expect(existsSync(join(cwd, "workorders"))).toBe(true);

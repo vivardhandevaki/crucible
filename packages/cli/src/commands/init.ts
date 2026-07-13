@@ -29,7 +29,7 @@ const CONSUMER_DIRS = [
   "src",
 ];
 
-function copyScaffold(scaffoldDir: string, cwd: string, owner: string): { copied: string[]; skipped: string[] } {
+function copyScaffold(scaffoldDir: string, cwd: string, owner: string, lang: string): { copied: string[]; skipped: string[] } {
   const copied: string[] = [];
   const skipped: string[] = [];
   const walk = (dir: string): void => {
@@ -49,7 +49,8 @@ function copyScaffold(scaffoldDir: string, cwd: string, owner: string): { copied
       mkdirSync(join(dest, ".."), { recursive: true });
       const content = readFileSync(src, "utf8")
         .replaceAll("{{OWNER}}", `@${owner.replace(/^@/, "")}`)
-        .replaceAll("{{CRUCIBLE_REF}}", CRUCIBLE_REF);
+        .replaceAll("{{CRUCIBLE_REF}}", CRUCIBLE_REF)
+        .replaceAll("{{LANG}}", lang);
       writeFileSync(dest, content, { mode: entry.name.endsWith(".sh") ? 0o755 : 0o644 });
       copied.push(rel);
     }
@@ -113,10 +114,21 @@ export async function cmdInit(
   }
 
   // 3. Project scaffold (never overwrites).
-  const { copied, skipped } = copyScaffold(assets.scaffoldDir, ctx.cwd, opts.owner);
+  const { copied, skipped } = copyScaffold(assets.scaffoldDir, ctx.cwd, opts.owner, opts.lang);
   lines.push(`scaffold: copied ${copied.length} file(s)${skipped.length ? `, skipped ${skipped.length} existing` : ""}`);
   for (const d of CONSUMER_DIRS) mkdirSync(join(ctx.cwd, d), { recursive: true });
   lines.push(`dirs: ${CONSUMER_DIRS.join(", ")}`);
+
+  // 3b. Crucible skills -> .claude/skills/ (never overwrites).
+  let skillCount = 0;
+  for (const skill of readdirSync(assets.skillsDir, { withFileTypes: true })) {
+    if (!skill.isDirectory()) continue;
+    const dest = join(ctx.cwd, ".claude", "skills", `crucible-${skill.name}`);
+    if (existsSync(dest)) continue;
+    cpSync(join(assets.skillsDir, skill.name), dest, { recursive: true });
+    skillCount++;
+  }
+  lines.push(`skills: installed ${skillCount} into .claude/skills/`);
 
   // 4. crucible.yaml — the consumer's framework manifest.
   writeFileSync(
@@ -139,7 +151,8 @@ export async function cmdInit(
     "next steps:",
     "  1. review + commit the scaffold, push to GitHub",
     "  2. apply branch protection: settings/apply.sh",
-    "  3. start your first feature: crucible new <ID> --title <t> --change <slug>",
+    "  3. add the ANTHROPIC_API_KEY repo secret (reviewer agent): gh secret set ANTHROPIC_API_KEY",
+    "  4. start your first feature: crucible new <ID> --title <t> --change <slug>",
   );
   return { exitCode: 0, data: { copied, skipped, lang: opts.lang }, lines };
 }
