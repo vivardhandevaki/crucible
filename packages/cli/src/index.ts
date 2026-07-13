@@ -15,6 +15,9 @@ import { cmdStatus } from "./commands/status.js";
 import { cmdEscalations } from "./commands/escalations.js";
 import { cmdInit } from "./commands/init.js";
 import { cmdPackage } from "./commands/package.js";
+import { gateLegitimacy } from "./gates/legitimacy.js";
+import { gateDiffSize } from "./gates/diffsize.js";
+import { readFileSync } from "node:fs";
 
 const program = new Command();
 
@@ -90,5 +93,37 @@ program
   .option("--json", "machine-readable output", false)
   .action((o: { json: boolean }) =>
     run(() => cmdEscalations(defaultContext(process.cwd())), o.json));
+
+const gate = program
+  .command("gate")
+  .description("Gauntlet gate checks (the enforcement layer; run by CI on every PR)");
+
+gate
+  .command("legitimacy")
+  .description("work-order legitimacy: valid ID + legal state + scope + append-only history")
+  .requiredOption("--base <ref>", "merge-base ref (e.g. origin/main)")
+  .option("--pr-body-file <path>", "file containing the PR body")
+  .option("--label <label...>", "PR labels", [])
+  .option("--json", "machine-readable output", false)
+  .action((o: { base: string; prBodyFile?: string; label: string[]; json: boolean }) =>
+    run(() => gateLegitimacy(defaultContext(process.cwd()), {
+      base: o.base,
+      prBody: o.prBodyFile ? readFileSync(o.prBodyFile, "utf8") : "",
+      labels: o.label,
+    }), o.json));
+
+gate
+  .command("diff-size")
+  .description("changed lines ≤ the work order's max_diff_lines (lockfiles/generated excluded)")
+  .requiredOption("--base <ref>", "merge-base ref (e.g. origin/main)")
+  .option("--id <id>", "work-order ID (or provide --pr-body-file)")
+  .option("--pr-body-file <path>", "file containing the PR body")
+  .option("--json", "machine-readable output", false)
+  .action((o: { base: string; id?: string; prBodyFile?: string; json: boolean }) =>
+    run(() => gateDiffSize(defaultContext(process.cwd()), {
+      base: o.base,
+      ...(o.id !== undefined ? { id: o.id } : {}),
+      ...(o.prBodyFile !== undefined ? { prBody: readFileSync(o.prBodyFile, "utf8") } : {}),
+    }), o.json));
 
 program.parseAsync(process.argv);
