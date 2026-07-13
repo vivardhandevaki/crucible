@@ -17,6 +17,8 @@ import { cmdInit } from "./commands/init.js";
 import { cmdPackage } from "./commands/package.js";
 import { cmdRun } from "./commands/run.js";
 import { cmdReview } from "./commands/review.js";
+import { cmdRoute } from "./commands/route.js";
+import { cmdAudit } from "./commands/audit.js";
 import { gateLegitimacy } from "./gates/legitimacy.js";
 import { gateDiffSize } from "./gates/diffsize.js";
 import { gateTraceability } from "./gates/traceability.js";
@@ -119,6 +121,29 @@ program
       ...(o.id !== undefined ? { id: o.id } : {}),
       ...(o.prBodyFile !== undefined ? { prBody: readFileSync(o.prBodyFile, "utf8") } : {}),
     }), o.json));
+
+program
+  .command("route")
+  .description("deterministic routing: risk paths + reviewer verdict -> auto-merge or human review")
+  .requiredOption("--base <ref>", "merge-base ref")
+  .option("--verdict <path>", "review-verdict.json path", "review-verdict.json")
+  .option("--pr <number>", "PR number (required with --apply)")
+  .option("--apply", "apply labels + auto-merge/review-request via gh", false)
+  .option("--json", "machine-readable output", false)
+  .action((o: { base: string; verdict: string; pr?: string; apply: boolean; json: boolean }) =>
+    run(() => cmdRoute(defaultContext(process.cwd()), {
+      base: o.base, verdict: o.verdict, apply: o.apply,
+      ...(o.pr !== undefined ? { pr: o.pr } : {}),
+    }), o.json));
+
+program
+  .command("audit")
+  .description("deterministic sample of auto-merged PRs for human review (weekly hygiene)")
+  .option("--sample <fraction>", "sampling fraction", "0.1")
+  .option("--since-days <n>", "look-back window", "7")
+  .option("--json", "machine-readable output", false)
+  .action((o: { sample: string; sinceDays: string; json: boolean }) =>
+    run(() => cmdAudit(defaultContext(process.cwd()), { sample: Number(o.sample), sinceDays: Number(o.sinceDays) }), o.json));
 
 const gate = program
   .command("gate")

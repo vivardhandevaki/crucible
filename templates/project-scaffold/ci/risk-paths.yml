@@ -1,0 +1,13 @@
+# Risk-path list for deterministic routing (plan Appendix B) — protected path.
+# A PR touching any pattern below is routed to HUMAN review with label risk:<category>.
+# Grows via the ratchet; changing it is a reviewed PR by construction.
+#
+# Glob syntax: ** = any depth, * = one path segment.
+categories:
+  auth: ["**/auth/**", "**/authz/**", "**/security/**"]
+  money: ["**/payment/**", "**/refund/**", "**/ledger/**"]
+  data: ["**/*Migration*", "**/migration/**", "**/*migration*"]
+  api: ["**/api/**"]
+  deps: ["ci/dependency-allowlist.yml"]
+# Note: the `concurrency` category is content-based (synchronized/@ThreadSafe in
+# diff hunks) and built into `crucible route`; it needs no path patterns here.
