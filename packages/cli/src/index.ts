@@ -13,6 +13,8 @@ import { cmdNew } from "./commands/new.js";
 import { cmdValidate } from "./commands/validate.js";
 import { cmdStatus } from "./commands/status.js";
 import { cmdEscalations } from "./commands/escalations.js";
+import { cmdInit } from "./commands/init.js";
+import { cmdPackage } from "./commands/package.js";
 
 const program = new Command();
 
@@ -40,6 +42,22 @@ program
   .name("crucible")
   .description("Crucible — AI-driven development inside a container of enforcement")
   .version("0.1.0");
+
+program
+  .command("init")
+  .description("turn this repo into a Crucible-governed project (openspec + oracle-driven schema + scaffold)")
+  .requiredOption("--owner <handle>", "GitHub handle that owns protected paths (CODEOWNERS)")
+  .option("--lang <lang>", "language profile", "java")
+  .option("--json", "machine-readable output", false)
+  .action((o: { owner: string; lang: string; json: boolean }) =>
+    run(() => cmdInit(defaultContext(process.cwd()), o), o.json));
+
+program
+  .command("package <id>")
+  .description("assemble the implementation bundle (requires ORACLES_APPROVED); records PACKAGED")
+  .option("--json", "machine-readable output", false)
+  .action((id: string, o: { json: boolean }) =>
+    run(() => cmdPackage(defaultContext(process.cwd()), id), o.json));
 
 program
   .command("new <id>")
