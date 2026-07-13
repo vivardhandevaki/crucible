@@ -18,6 +18,8 @@ import { resolveAssets } from "../lib/assets.js";
 
 export const SUPPORTED_LANGS = ["java"] as const;
 const TOOLCHAIN_IMAGE = "ghcr.io/vivardhandevaki/crucible-toolchain:0.1.0";
+/** Framework ref consumers pin for reusable workflows; a tag per release. */
+const CRUCIBLE_REF = "v0.1.0";
 const CONSUMER_DIRS = [
   "workorders",
   "oracles/properties",
@@ -45,7 +47,9 @@ function copyScaffold(scaffoldDir: string, cwd: string, owner: string): { copied
         continue;
       }
       mkdirSync(join(dest, ".."), { recursive: true });
-      const content = readFileSync(src, "utf8").replaceAll("{{OWNER}}", `@${owner.replace(/^@/, "")}`);
+      const content = readFileSync(src, "utf8")
+        .replaceAll("{{OWNER}}", `@${owner.replace(/^@/, "")}`)
+        .replaceAll("{{CRUCIBLE_REF}}", CRUCIBLE_REF);
       writeFileSync(dest, content, { mode: entry.name.endsWith(".sh") ? 0o755 : 0o644 });
       copied.push(rel);
     }
