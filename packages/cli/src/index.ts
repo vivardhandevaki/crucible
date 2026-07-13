@@ -15,6 +15,7 @@ import { cmdStatus } from "./commands/status.js";
 import { cmdEscalations } from "./commands/escalations.js";
 import { cmdInit } from "./commands/init.js";
 import { cmdPackage } from "./commands/package.js";
+import { cmdRun } from "./commands/run.js";
 import { gateLegitimacy } from "./gates/legitimacy.js";
 import { gateDiffSize } from "./gates/diffsize.js";
 import { gateTraceability } from "./gates/traceability.js";
@@ -80,6 +81,13 @@ program
   .option("--json", "machine-readable output", false)
   .action((id: string, o: { advance: boolean; to?: string; json: boolean }) =>
     run(() => cmdValidate(defaultContext(process.cwd()), id, o), o.json));
+
+program
+  .command("run <id>")
+  .description("run the implementer agent in a sandbox (requires PACKAGED); runner opens the PR")
+  .option("--json", "machine-readable output", false)
+  .action((id: string, o: { json: boolean }) =>
+    run(() => cmdRun(defaultContext(process.cwd()), id), o.json));
 
 program
   .command("status [id]")

@@ -1,0 +1,40 @@
+{
+  "_comment": "Claude Code permission config for the implementer sandbox. Rendered per-run by `crucible run` ({{WORKORDER_DIR}} substituted), mounted read-only. First line of defense; the container boundary and the Gauntlet back it up (defense in depth, D-10).",
+  "permissions": {
+    "deny": [
+      "Edit(oracles/**)",
+      "Write(oracles/**)",
+      "Edit(openspec/specs/**)",
+      "Write(openspec/specs/**)",
+      "Edit(openspec/schemas/**)",
+      "Write(openspec/schemas/**)",
+      "Edit(ci/**)",
+      "Write(ci/**)",
+      "Edit(.github/**)",
+      "Write(.github/**)",
+      "Edit(settings/**)",
+      "Write(settings/**)",
+      "Edit(CLAUDE.md)",
+      "Write(CLAUDE.md)",
+      "Edit(crucible.yaml)",
+      "Write(crucible.yaml)",
+      "Bash(git push:*)",
+      "Bash(gh:*)",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "allow": [
+      "Edit(src/**)",
+      "Write(src/**)",
+      "Edit({{CHANGE_DIR}}tasks.md)",
+      "Write({{WORKORDER_DIR}}escalation.md)",
+      "Bash(gradle:*)",
+      "Bash(./gradlew:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ]
+  }
+}
