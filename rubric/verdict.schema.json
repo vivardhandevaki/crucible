@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vivardhandevaki/crucible/rubric/verdict.schema.json",
+  "title": "Reviewer verdict",
+  "description": "Machine-parseable reviewer-agent output. Malformed output = FAIL (fail-closed).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["rubric_version", "items", "overall"],
+  "properties": {
+    "rubric_version": { "type": "integer", "minimum": 1 },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "verdict", "evidence"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^R[0-9]+$" },
+          "verdict": { "type": "string", "enum": ["PASS", "FLAG", "FAIL"] },
+          "evidence": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "overall": { "type": "string", "enum": ["PASS", "FLAG", "FAIL"] }
+  }
+}

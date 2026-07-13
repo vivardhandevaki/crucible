@@ -46,7 +46,7 @@
           { "context": "gauntlet / mutation" },
           { "context": "gauntlet / sast" },
           { "context": "gauntlet / deps" },
-          { "context": "gauntlet / reviewer-verdict" }
+          { "context": "review / reviewer-verdict" }
         ]
       }
     }
