@@ -17,6 +17,7 @@ import { cmdInit } from "./commands/init.js";
 import { cmdPackage } from "./commands/package.js";
 import { gateLegitimacy } from "./gates/legitimacy.js";
 import { gateDiffSize } from "./gates/diffsize.js";
+import { gateTraceability } from "./gates/traceability.js";
 import { readFileSync } from "node:fs";
 
 const program = new Command();
@@ -122,6 +123,20 @@ gate
   .action((o: { base: string; id?: string; prBodyFile?: string; json: boolean }) =>
     run(() => gateDiffSize(defaultContext(process.cwd()), {
       base: o.base,
+      ...(o.id !== undefined ? { id: o.id } : {}),
+      ...(o.prBodyFile !== undefined ? { prBody: readFileSync(o.prBodyFile, "utf8") } : {}),
+    }), o.json));
+
+gate
+  .command("traceability")
+  .description("every SHALL/MUST has an oracle row; oracle files exist on the right ref")
+  .option("--id <id>", "work-order ID (or provide --pr-body-file)")
+  .option("--pr-body-file <path>", "file containing the PR body")
+  .option("--main-ref <ref>", "ref where APPROVED oracles must exist", "origin/main")
+  .option("--json", "machine-readable output", false)
+  .action((o: { id?: string; prBodyFile?: string; mainRef: string; json: boolean }) =>
+    run(() => gateTraceability(defaultContext(process.cwd()), {
+      mainRef: o.mainRef,
       ...(o.id !== undefined ? { id: o.id } : {}),
       ...(o.prBodyFile !== undefined ? { prBody: readFileSync(o.prBodyFile, "utf8") } : {}),
     }), o.json));
