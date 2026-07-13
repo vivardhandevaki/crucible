@@ -23,7 +23,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write # auto-merge enablement
   pull-requests: write
 
 jobs:
@@ -71,3 +71,14 @@ jobs:
             } > /tmp/comment.md
             gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/comment.md || true
           fi
+      - name: Route (deterministic; applies labels + auto-merge or review request)
+        # Runs only when the verdict check itself passed (PASS/FLAG). A FAIL
+        # verdict red-checks the PR; routing is moot.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          node .crucible/packages/cli/dist/index.js route \
+            --base "origin/${{ github.base_ref }}" \
+            --verdict review-verdict.json \
+            --pr "${{ github.event.pull_request.number }}" \
+            --apply
