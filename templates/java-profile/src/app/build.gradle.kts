@@ -10,6 +10,10 @@ pitest {
     threads = 2
     mutationThreshold = 75
     timestampedReports = false
+    // Without an explicit target, PIT defaults to the (empty) project group and
+    // finds 0 mutations -> PitHelpError. Scope it to the app package tree.
+    targetClasses.set(listOf("app.*"))
+    targetTests.set(listOf("app.*"))
 }
 
 dependencies {

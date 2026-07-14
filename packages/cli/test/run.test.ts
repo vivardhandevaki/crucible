@@ -135,7 +135,7 @@ describe("crucible run outcomes", () => {
     expect(prompt).toContain("src/demo");
     expect(prompt).not.toContain("{{");
     const settings = readFileSync(join(runlog, "settings.json"), "utf8");
-    expect(settings).toContain("workorders/OMS-1-demo/escalation.md");
+    expect(settings).toContain("Write(workorders/**)"); // escalation write (trailing-glob form)
     expect(settings).not.toContain("_comment");
     const dockerRun = execLog.find((l) => l.startsWith("docker run"))!;
     expect(dockerRun).toContain("/bundle:ro");

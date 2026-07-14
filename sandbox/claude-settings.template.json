@@ -1,5 +1,5 @@
 {
-  "_comment": "Claude Code permission config for the implementer sandbox. Rendered per-run by `crucible run` ({{WORKORDER_DIR}} substituted), mounted read-only. First line of defense; the container boundary and the Gauntlet back it up (defense in depth, D-10).",
+  "_comment": "Claude Code permission config for the implementer sandbox. Mounted read-only. First line of defense; the container boundary and the Gauntlet back it up (defense in depth, D-10). MATCHER NOTE: Claude Code reliably matches a trailing-glob dir pattern (`src/**`) against new-file writes, but NOT fully-literal paths nor a leading `**/<file>` for a file that does not exist yet. So the escalation file (a new write) is permitted via the trailing-glob `Write(workorders/**)`, while tasks.md (an existing-file edit) works via `Edit(**/tasks.md)`. The CLAUDE.md/crucible.yaml denies are belt-and-suspenders — the legitimacy gate + CODEOWNERS are the real backstop.",
   "permissions": {
     "deny": [
       "Edit(oracles/**)",
@@ -14,10 +14,10 @@
       "Write(.github/**)",
       "Edit(settings/**)",
       "Write(settings/**)",
-      "Edit(CLAUDE.md)",
-      "Write(CLAUDE.md)",
-      "Edit(crucible.yaml)",
-      "Write(crucible.yaml)",
+      "Edit(**/CLAUDE.md)",
+      "Write(**/CLAUDE.md)",
+      "Edit(**/crucible.yaml)",
+      "Write(**/crucible.yaml)",
       "Bash(git push:*)",
       "Bash(gh:*)",
       "WebFetch",
@@ -26,8 +26,8 @@
     "allow": [
       "Edit(src/**)",
       "Write(src/**)",
-      "Edit({{CHANGE_DIR}}tasks.md)",
-      "Write({{WORKORDER_DIR}}escalation.md)",
+      "Edit(**/tasks.md)",
+      "Write(workorders/**)",
       "Bash(gradle:*)",
       "Bash(./gradlew:*)",
       "Bash(git add:*)",

@@ -93,9 +93,12 @@ export async function gateLegitimacy(
     detail: PR_LEGAL_STATES.has(wo.state) ? wo.state : `${wo.state} — PRs are only legal in ${[...PR_LEGAL_STATES].join(", ")}`,
   });
 
-  // b. Scope: inside module map (+ own work-order dir), outside forbidden paths.
+  // b. Scope: inside module map (+ own work-order dir + this change's tasks.md),
+  //    outside forbidden paths. The agent legitimately ticks its own task list and
+  //    the runner writes the work order's manifest/escalation under its dir.
   const woDir = relative(ctx.cwd, findWorkorderDir(ctx.cwd, id) ?? join(ctx.cwd, "workorders", id)) + "/";
-  const allowed = [...wo.modules_allowed.map((m) => (m.endsWith("/") ? m : `${m}/`)), woDir];
+  const tasksFile = `${wo.change.replace(/\/?$/, "/")}tasks.md`;
+  const allowed = [...wo.modules_allowed.map((m) => (m.endsWith("/") ? m : `${m}/`)), woDir, tasksFile];
   const forbidden = touched.filter((p) => matchesAny(p, wo.paths_forbidden));
   checks.push({
     name: "no touched path is forbidden",
