@@ -362,7 +362,7 @@ Fresh container from `crucible-toolchain:<pinned>`; fresh clone at the work-orde
 
 ## Phase 5 — Crucible Console
 
-**This phase is executed through the Crucible loop itself**: each screen below becomes an OpenSpec change with oracles (yes — write property/contract oracles for the Console's API surface, and at minimum example-based oracles + a Playwright smoke oracle for the UI), a work order, and Gauntlet-gated PRs (add a `console-build`+`console-tests` job pair to the Gauntlet, path-filtered to `/console`). The Console is the shakedown cruise; expect and welcome friction — every friction point is a harness PR.
+**This phase is built directly, NOT through the Crucible loop** (ADR 0003). The Crucible loop governs the *software systems Crucible builds*, not the Console tooling itself; dogfooding a UI app through per-screen OpenSpec changes + authored oracles + Gauntlet PRs was judged too heavy for too little return. The Console is still developed against the stateless doctrine (§5.1) and ships with tests — including the three §5.4 negative-guarantee tests — but as a normal application, not as work orders. (Calibration friction is still surfaced via terminal + GitHub use, per concept §10.4.)
 
 ### 5.1 Architecture (restating the doctrine as constraints)
 
@@ -415,7 +415,7 @@ Minimalist and utilitarian, per the concept doc §10.3: light neutral background
 1. All five screens function against the real repo; every action displays its terminal equivalent.
 2. The three §5.4 negative tests pass.
 3. Fallback drill (concept doc success criterion 6): complete one full feature cycle with the Console stopped, using only terminal + GitHub UI; then start the Console and verify the board reflects everything correctly.
-4. Console PRs themselves flowed through the full Crucible loop (work orders + Gauntlet + reviewer) — verify in git history.
+4. The Console is built directly (ADR 0003), so it does NOT flow through the Crucible loop; instead verify it ships with the §5.4 negative-guarantee tests green and a passing server/UI test suite.
 
 ---
 

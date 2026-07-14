@@ -1,0 +1,23 @@
+# Run the Console in the pinned toolchain image, localhost only.
+# Mounts the framework repo (this repo) and the consumer repo you operate on.
+# Set CRUCIBLE_REPO_HOST to your consumer repo path before `docker compose up`.
+services:
+  console:
+    image: ghcr.io/vivardhandevaki/crucible-toolchain:0.1.0
+    working_dir: /crucible
+    ports:
+      - "127.0.0.1:7317:7317"
+    environment:
+      CRUCIBLE_REPO: /project
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      CONSOLE_PORT: "7317"
+      HOST: "0.0.0.0"
+    volumes:
+      - ..:/crucible
+      - ${CRUCIBLE_REPO_HOST:-../../crucible-drill-v1}:/project
+    command: >
+      bash -lc "cd packages/cli && npm ci && npm run build &&
+                cd ../../console/web && npm install && npm run build &&
+                cd ../server && npm install && npm run build &&
+                node dist/index.js"

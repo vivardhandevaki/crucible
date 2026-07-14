@@ -303,7 +303,7 @@ Clean, simple, utilitarian, minimalist, elegant. Concretely: one accent color; g
 
 ### 10.4 Sequencing caution
 
-The Console is built **last** (Phase 5 of the plan) and is itself fed through the Crucible loop as its first multi-PR project — a low-risk, well-specifiable shakedown cruise. Terminal + GitHub's UI carry the calibration weeks; the Console is then designed against *felt* friction rather than imagined friction.
+The Console is built **last** (Phase 5 of the plan), directly rather than through the Crucible loop (ADR 0003 — the loop governs the systems Crucible builds, not the Console tooling itself). Terminal + GitHub's UI carry the calibration weeks; the Console is then designed against *felt* friction rather than imagined friction.
 
 ---
 

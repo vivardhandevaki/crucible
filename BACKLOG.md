@@ -26,6 +26,15 @@ short: what, why, and any pointer. Promote to an issue/PR when picked up.
   (enforced-checks-by-default + labels + workflow-perms + auto-merge). Only the consumer
   scaffold copy was updated in v0.2.1.
 
+- **Console UI smoke test (Playwright).** The server has integration + §5.4 guarantee
+  tests, but there is no browser-level test that the five screens render and keyboard
+  nav works. Add a Playwright smoke against a mocked API. `console/web`.
+
+- **Live run-log streaming for the Console.** `crucible run` buffers the sandbox output
+  and writes `transcript.jsonl` at the end, so the Run Monitor's log pane only fills once
+  the run finishes. For true live logs, stream the container output to a growing file the
+  Console can tail. `packages/cli/src/commands/run.ts` + `console/server`.
+
 - **Verify the sandbox permission-matcher assumptions** against future Claude Code
   releases. v0.2.1 relies on empirically-observed behaviour: trailing-glob (`src/**`,
   `workorders/**`) matches new-file writes; a leading `**/<file>` does not; `Edit(**/x)`

@@ -1,0 +1,16 @@
+{
+  "name": "crucible-root",
+  "private": true,
+  "description": "Convenience scripts for the Crucible Console. NOT an npm workspace — packages/cli stays standalone so its CI is unaffected.",
+  "type": "module",
+  "scripts": {
+    "console:install": "cd packages/cli && npm ci && npm run build && cd ../../console/server && npm install && cd ../web && npm install",
+    "console": "concurrently -n server,web -c yellow,cyan \"npm --prefix console/server run dev\" \"npm --prefix console/web run dev\"",
+    "console:build": "npm --prefix console/web run build && npm --prefix console/server run build",
+    "console:start": "npm --prefix console/server run start",
+    "console:test": "npm --prefix console/server test"
+  },
+  "devDependencies": {
+    "concurrently": "9.1.2"
+  }
+}

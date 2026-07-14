@@ -26,3 +26,11 @@ export {
   type HistoryEntry,
   type ValidationResult,
 } from "./workorder.js";
+
+export {
+  parseOracleRows,
+  parseRequirements,
+  rowCovers,
+  type OracleRow,
+  type Requirement,
+} from "./oracles.js";
