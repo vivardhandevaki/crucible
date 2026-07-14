@@ -17,14 +17,19 @@ Every action shows its terminal equivalent (the `⌘` popover). Keyboard: `g b` 
 
 ## Run it
 
-From the framework repo root:
+From the framework repo root. **If `gh` and `claude` are already set up on your machine,
+you need no `.env`** — the Console reuses your `gh` login (`gh auth token`) and your
+logged-in `claude`. Just point it at your project:
 
 ```bash
-cp console/.env.example console/.env      # set CRUCIBLE_REPO + GITHUB_TOKEN + CLAUDE_CODE_OAUTH_TOKEN
-npm --prefix console/server install && npm --prefix console/web install
-npm install                                # root: dev orchestrator (concurrently)
-npm run console                            # server :7317 + Vite :7318 (open http://localhost:7318)
+export CRUCIBLE_REPO=/path/to/your-crucible-project   # or run from inside that repo
+npm run console:install                                # installs cli + server + web + root
+npm run console                                        # server :7317 + Vite :7318 (open http://localhost:7318)
 ```
+
+Override or supply credentials explicitly via `cp console/.env.example console/.env`
+(a GitHub token, a Claude token, a different port). The top bar shows the resolved
+sources, e.g. `gh ✓ (gh cli) · claude ✓ (host)`.
 
 Production (single server serving built assets):
 

@@ -24,7 +24,11 @@ export function App() {
         </nav>
         <span className="spacer" />
         <span className="muted" style={{ fontSize: 12 }}>
-          {health ? <>{health.githubSlug ?? "no remote"} · gh {health.github ? "✓" : "✗"} · claude {health.claude ? "✓" : "✗"}</> : "connecting…"}
+          {health ? <>
+            {health.githubSlug ?? "no remote"}
+            {" · gh "}{health.github ? `✓ ${health.githubAuth === "gh-cli" ? "(gh cli)" : ""}` : "✗"}
+            {" · claude "}{health.claude ? `✓ ${health.claudeMode === "host" ? "(host)" : ""}` : "✗"}
+          </> : "connecting…"}
         </span>
       </header>
       <main className="content">
