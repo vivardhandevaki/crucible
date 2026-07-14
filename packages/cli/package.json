@@ -10,6 +10,10 @@
   "bin": {
     "crucible": "dist/index.js"
   },
+  "exports": {
+    ".": "./dist/index.js",
+    "./core": "./dist/core/index.js"
+  },
   "files": [
     "dist"
   ],
