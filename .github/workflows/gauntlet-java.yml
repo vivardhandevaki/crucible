@@ -84,6 +84,9 @@ jobs:
             --config p/java \
             --config ci/semgrep/custom.yml
 
+  # deps (REQUIRED, fast): the mechanical allowlist check only — deterministic,
+  # no network. "Did this PR pull in an un-vetted dependency?" is a property of
+  # the change and belongs on the merge path.
   deps:
     runs-on: ubuntu-latest
     steps:
@@ -105,7 +108,37 @@ jobs:
             fi
           done < /tmp/groups.txt
           exit $violations
+
+  # cve (NOT required): the slow OWASP/NVD CVE scan. CVE status is a property of
+  # the dependency SET over time, not of a code change — so it runs on the merge
+  # path ONLY when dependency-defining files change, and otherwise is covered by
+  # the weekly scheduled scan of the default branch (cve-scan.yml). Set the free
+  # NVD_API_KEY secret to make the NVD download minutes instead of tens of minutes.
+  cve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with: { fetch-depth: 0 }
+      - name: Detect dependency-file changes
+        id: depchange
+        run: |
+          base="origin/${{ github.base_ref }}"
+          git fetch --no-tags --quiet origin "${{ github.base_ref }}" || true
+          if git diff --name-only "$base"...HEAD \
+            | grep -qE '(^|/)(build\.gradle\.kts|settings\.gradle\.kts)$|ci/dependency-allowlist\.yml$|gradle/.*\.versions\.toml$'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No dependency-defining files changed — CVE scan handled by the scheduled scan of the default branch."
+          fi
+      - uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        if: steps.depchange.outputs.changed == 'true'
+        with: { distribution: temurin, java-version: "21" }
+      - uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        if: steps.depchange.outputs.changed == 'true'
+        with: { gradle-version: "9.6.1" }
       - name: OWASP dependency-check (fail on CVSS >= 7)
+        if: steps.depchange.outputs.changed == 'true'
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: gradle --no-daemon dependencyCheckAnalyze
