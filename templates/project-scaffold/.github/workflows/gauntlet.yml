@@ -23,7 +23,7 @@ jobs:
     with:
       crucible-ref: "{{CRUCIBLE_REF}}"
     secrets:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
   java:
     uses: vivardhandevaki/crucible/.github/workflows/gauntlet-java.yml@{{CRUCIBLE_REF}}

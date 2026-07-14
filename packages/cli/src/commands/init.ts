@@ -19,7 +19,7 @@ import { resolveAssets } from "../lib/assets.js";
 export const SUPPORTED_LANGS = ["java"] as const;
 const TOOLCHAIN_IMAGE = "ghcr.io/vivardhandevaki/crucible-toolchain:0.1.0";
 /** Framework ref consumers pin for reusable workflows; a tag per release. */
-const CRUCIBLE_REF = "v0.1.0";
+const CRUCIBLE_REF = "v0.2.0";
 const CONSUMER_DIRS = [
   "workorders",
   "oracles/properties",
@@ -169,8 +169,10 @@ export async function cmdInit(
     "  1. generate the Gradle wrapper (java profile): gradle wrapper --gradle-version 9.6.1",
     "  2. review + commit the scaffold, push to GitHub",
     "  3. apply branch protection: settings/apply.sh",
-    "  4. add the ANTHROPIC_API_KEY repo secret (reviewer agent): gh secret set ANTHROPIC_API_KEY",
-    "  5. start your first feature: crucible new <ID> --title <t> --change <slug>",
+    "  4. mint a Claude subscription token (once): claude setup-token",
+    "  5. add it as the reviewer-agent repo secret: gh secret set CLAUDE_CODE_OAUTH_TOKEN",
+    "     and, for local `crucible run`, put CLAUDE_CODE_OAUTH_TOKEN=<token> in .env",
+    "  6. start your first feature: crucible new <ID> --title <t> --change <slug>",
   );
   return { exitCode: 0, data: { copied, skipped, lang: opts.lang }, lines };
 }

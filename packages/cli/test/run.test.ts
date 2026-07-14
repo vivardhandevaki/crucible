@@ -66,14 +66,14 @@ function setup(state: Workorder["state"] = "PACKAGED", opts: { bundle?: boolean;
     mkdirSync(join(woDir, "bundle"), { recursive: true });
     writeFileSync(join(woDir, "bundle/bundle.yaml"), "workorder: OMS-1\n");
   }
-  if (opts.key !== false) writeFileSync(join(cwd, ".env"), "ANTHROPIC_API_KEY=sk-test-123\n");
+  if (opts.key !== false) writeFileSync(join(cwd, ".env"), "CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat-test-123\n");
 }
 
 beforeEach(() => {
   cwd = mkdtempSync(join(tmpdir(), "crucible-run-"));
   agent = "nothing";
   execLog = [];
-  delete process.env["ANTHROPIC_API_KEY"];
+  delete process.env["CLAUDE_CODE_OAUTH_TOKEN"];
 });
 afterEach(() => rmSync(cwd, { recursive: true, force: true }));
 
@@ -84,7 +84,7 @@ describe("crucible run preconditions", () => {
     setup("ORACLES_APPROVED");
     expect((await cmdRun(ctx(), "OMS-1")).exitCode).toBe(2);
   });
-  it("exit 2 without a bundle; exit 3 without an API key", async () => {
+  it("exit 2 without a bundle; exit 3 without an OAuth token", async () => {
     setup("PACKAGED", { bundle: false });
     expect((await cmdRun(ctx(), "OMS-1")).exitCode).toBe(2);
     setup("PACKAGED", { key: false });
@@ -111,6 +111,10 @@ describe("crucible run outcomes", () => {
     expect(r.exitCode).toBe(0);
     expect((r.data as { outcome: string }).outcome).toBe("pr-open");
     expect(execLog.some((l) => l.startsWith("gh pr create") && l.includes("Work-Order-ID: OMS-1") && l.includes("wo:OMS-1"))).toBe(true);
+    // Subscription-only: the container is handed the OAuth token, never a pay-as-you-go API key.
+    const dockerRun = execLog.find((l) => l.startsWith("docker run"))!;
+    expect(dockerRun).toContain("-e CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat-test-123");
+    expect(dockerRun).not.toContain("ANTHROPIC_API_KEY");
     expect(woFile().ok && (woFile() as { workorder: Workorder }).workorder.state).toBe("PR_OPEN");
   });
 

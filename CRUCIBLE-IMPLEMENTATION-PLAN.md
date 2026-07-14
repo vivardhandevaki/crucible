@@ -49,7 +49,7 @@
 | Console backend | Node.js 22 + Express + TypeScript, stateless | Reads git + GitHub REST API (Octokit); triggers CLI / workflow_dispatch |
 | Console frontend | React 18 + Vite + TypeScript | No component-library dependency beyond headless primitives; styling per §5.5 |
 | Container | Docker; single `crucible-toolchain` image used locally, in CI, and in sandboxes | Dockerfile in `/harness/toolchain/` |
-| Secrets | Local `.env` (gitignored) for owner PAT + Anthropic API key; GitHub Actions secrets in CI | Never in repo |
+| Secrets | Local `.env` (gitignored) for owner PAT + `CLAUDE_CODE_OAUTH_TOKEN` (Claude subscription, via `claude setup-token`); GitHub Actions secrets in CI | Never in repo |
 
 ---
 

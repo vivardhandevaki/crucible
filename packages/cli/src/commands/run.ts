@@ -3,16 +3,20 @@
  *
  * The loop lives HERE (deterministic code), never in the agent:
  *   1. preconditions: PACKAGED (or PR_OPEN/IMPLEMENTING for a new attempt),
- *      bundle present, docker present, ANTHROPIC_API_KEY available
+ *      bundle present, docker present, CLAUDE_CODE_OAUTH_TOKEN available
  *   2. fresh clone of the consumer repo -> work branch wo/<ID>
  *   3. render prompt + permission settings; run the pinned toolchain container
  *      with the bundle mounted read-only; capture the full transcript
  *   4. outcome: escalation.md -> ESCALATED · commits -> runner pushes branch
  *      and opens the PR (the agent never does) -> PR_OPEN · neither -> report
  *
+ * Auth: the agent runs under the operator's Claude subscription via a
+ * CLAUDE_CODE_OAUTH_TOKEN (minted once with `claude setup-token`), passed into
+ * the container. No pay-as-you-go API key is involved.
+ *
  * v1 honesty notes: the container runs on the default docker network (the
- * agent needs the Anthropic API; an egress-allowlist proxy is a hardening
- * follow-up). Iteration budget maps to --max-turns via TURNS_PER_ITERATION.
+ * agent needs to reach Anthropic's servers; an egress-allowlist proxy is a
+ * hardening follow-up). Iteration budget maps to --max-turns via TURNS_PER_ITERATION.
  */
 
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -25,11 +29,11 @@ import type { Workorder } from "../core/workorder.js";
 
 const TURNS_PER_ITERATION = 25;
 
-function apiKey(cwd: string): string | null {
-  if (process.env["ANTHROPIC_API_KEY"]) return process.env["ANTHROPIC_API_KEY"];
+function oauthToken(cwd: string): string | null {
+  if (process.env["CLAUDE_CODE_OAUTH_TOKEN"]) return process.env["CLAUDE_CODE_OAUTH_TOKEN"];
   const envFile = join(cwd, ".env");
   if (!existsSync(envFile)) return null;
-  const m = readFileSync(envFile, "utf8").match(/^ANTHROPIC_API_KEY=(.+)$/m);
+  const m = readFileSync(envFile, "utf8").match(/^CLAUDE_CODE_OAUTH_TOKEN=(.+)$/m);
   return m?.[1]?.trim() ?? null;
 }
 
@@ -58,9 +62,9 @@ export async function cmdRun(ctx: CmdContext, id: string): Promise<CmdResult> {
   if (!existsSync(join(bundle, "bundle.yaml"))) {
     return { exitCode: 2, data: { error: "bundle missing" }, lines: [`error: no bundle — run: crucible package ${id}`] };
   }
-  const key = apiKey(ctx.cwd);
-  if (!key) {
-    return { exitCode: 3, data: { error: "ANTHROPIC_API_KEY not set" }, lines: ["environment error: ANTHROPIC_API_KEY not set (env or .env)"] };
+  const token = oauthToken(ctx.cwd);
+  if (!token) {
+    return { exitCode: 3, data: { error: "CLAUDE_CODE_OAUTH_TOKEN not set" }, lines: ["environment error: CLAUDE_CODE_OAUTH_TOKEN not set (env or .env) — run `claude setup-token`"] };
   }
   if (!(await ctx.exec("docker", ["--version"])).ok) {
     return { exitCode: 3, data: { error: "docker unavailable" }, lines: ["environment error: docker unavailable"] };
@@ -113,7 +117,7 @@ export async function cmdRun(ctx: CmdContext, id: string): Promise<CmdResult> {
     "-v", `${bundle}:/bundle:ro`,
     "-v", `${join(runlog, "prompt.md")}:/sandbox/prompt.md:ro`,
     "-v", `${join(runlog, "settings.json")}:/sandbox/settings.json:ro`,
-    "-e", `ANTHROPIC_API_KEY=${key}`,
+    "-e", `CLAUDE_CODE_OAUTH_TOKEN=${token}`,
     "-w", "/workspace",
     image,
     "bash", "-c",
