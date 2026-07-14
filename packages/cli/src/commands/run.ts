@@ -91,6 +91,10 @@ export async function cmdRun(ctx: CmdContext, id: string): Promise<CmdResult> {
     return { exitCode: 3, data: { error: "clone failed" }, lines: ["environment error: workspace clone failed"] };
   }
   await ctx.exec("git", ["-C", workspace, "checkout", "-qb", branch]);
+  // The container has no git identity and the agent is denied `git config`, so the
+  // runner sets a stable implementer identity in the workspace clone (D-class fix).
+  await ctx.exec("git", ["-C", workspace, "config", "user.name", "crucible-implementer"]);
+  await ctx.exec("git", ["-C", workspace, "config", "user.email", "implementer@crucible.local"]);
   const baseSha = (await ctx.exec("git", ["-C", workspace, "rev-parse", "HEAD"])).stdout.trim();
 
   // --- Render harness inputs ---
@@ -147,13 +151,24 @@ export async function cmdRun(ctx: CmdContext, id: string): Promise<CmdResult> {
   // --- Outcome: commits -> the RUNNER pushes and opens the PR ---
   const count = Number((await ctx.exec("git", ["-C", workspace, "rev-list", "--count", `${baseSha}..HEAD`])).stdout.trim() || "0");
   if (count > 0) {
-    await ctx.exec("git", ["-C", workspace, "push", "--quiet", "origin", `${branch}:${branch}`]); // clone origin = consumer repo
-    await ctx.exec("git", ["push", "--quiet", "origin", branch]); // consumer -> GitHub
-    const body = `## Crucible\n- Work-Order-ID: ${wo.id}\n- PR-Sequence:\n\n## Summary\n${wo.title} (attempt ${attempt}, ${count} commit(s) by the implementer agent)\n`;
-    const pr = await ctx.exec("gh", ["pr", "create", "--head", branch, "--title", `${wo.id}: ${wo.title}`, "--body", body, "--label", "crucible", "--label", `wo:${wo.id}`]);
+    // Advance state and carry the manifest onto the branch: CI's legitimacy gate
+    // reads the work-order state from the branch, its only source of truth. The
+    // runner (not the agent) owns this transition.
     wo.history.push({ state: "PR_OPEN", at: ctx.now(), by: "crucible run" });
     wo.state = "PR_OPEN";
     saveWorkorder(loaded.dir, wo);
+    mkdirSync(join(workspace, woDirRel), { recursive: true });
+    cpSync(join(loaded.dir, "workorder.yaml"), join(workspace, woDirRel, "workorder.yaml"));
+    await ctx.exec("git", ["-C", workspace, "add", `${woDirRel}/workorder.yaml`]);
+    await ctx.exec("git", ["-C", workspace, "commit", "-q", "-m", `chore(${wo.id}): advance to PR_OPEN`]);
+
+    await ctx.exec("git", ["-C", workspace, "push", "--quiet", "origin", `${branch}:${branch}`]); // clone origin = consumer repo
+    await ctx.exec("git", ["push", "--quiet", "origin", branch]); // consumer -> GitHub
+    // Ensure the labels `gh pr create` applies exist (idempotent; wo:<ID> is per-run).
+    await ctx.exec("gh", ["label", "create", "crucible", "--force", "--color", "5319e7"]);
+    await ctx.exec("gh", ["label", "create", `wo:${wo.id}`, "--force", "--color", "1d76db"]);
+    const body = `## Crucible\n- Work-Order-ID: ${wo.id}\n- PR-Sequence:\n\n## Summary\n${wo.title} (attempt ${attempt}, ${count} commit(s) by the implementer agent)\n`;
+    const pr = await ctx.exec("gh", ["pr", "create", "--head", branch, "--title", `${wo.id}: ${wo.title}`, "--body", body, "--label", "crucible", "--label", `wo:${wo.id}`]);
     return {
       exitCode: 0,
       data: { outcome: "pr-open", attempt, commits: count, pr: pr.stdout.trim() },

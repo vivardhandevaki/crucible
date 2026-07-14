@@ -50,6 +50,7 @@ subprojects {
         "testImplementation"("org.junit.jupiter:junit-jupiter")
         "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
         "testImplementation"("net.jqwik:jqwik:1.9.3")
+        "testImplementation"("org.assertj:assertj-core:3.27.6") // fluent assertions for oracles + unit tests
     }
 
     tasks.withType<JavaCompile>().configureEach {
