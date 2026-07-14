@@ -19,6 +19,7 @@ import { cmdRun } from "./commands/run.js";
 import { cmdReview } from "./commands/review.js";
 import { cmdRoute } from "./commands/route.js";
 import { cmdAudit } from "./commands/audit.js";
+import { cmdEval } from "./commands/eval.js";
 import { gateLegitimacy } from "./gates/legitimacy.js";
 import { gateDiffSize } from "./gates/diffsize.js";
 import { gateTraceability } from "./gates/traceability.js";
@@ -144,6 +145,35 @@ program
   .option("--json", "machine-readable output", false)
   .action((o: { sample: string; sinceDays: string; json: boolean }) =>
     run(() => cmdAudit(defaultContext(process.cwd()), { sample: Number(o.sample), sinceDays: Number(o.sinceDays) }), o.json));
+
+const evalCmd = program
+  .command("eval")
+  .description("pipeline eval suite — benchmark work orders that guard the harness against regression");
+
+evalCmd
+  .command("run")
+  .description("run the benchmark scorecard (static tier by default; --live adds real sandbox runs)")
+  .option("--live", "additionally run the sandbox against a consumer repo (needs Docker + token + --repo)", false)
+  .option("--repo <path>", "Crucible consumer repo to run --live benchmarks against")
+  .option("--only <id>", "run a single benchmark by id or directory name")
+  .option("--json", "machine-readable output", false)
+  .action((o: { live: boolean; repo?: string; only?: string; json: boolean }) =>
+    run(() => cmdEval(defaultContext(process.cwd()), {
+      mode: "run", live: o.live,
+      ...(o.repo !== undefined ? { repo: o.repo } : {}),
+      ...(o.only !== undefined ? { only: o.only } : {}),
+    }), o.json));
+
+evalCmd
+  .command("list")
+  .description("list the benchmark work orders and their expected outcomes")
+  .option("--only <id>", "filter to a single benchmark by id or directory name")
+  .option("--json", "machine-readable output", false)
+  .action((o: { only?: string; json: boolean }) =>
+    run(() => cmdEval(defaultContext(process.cwd()), {
+      mode: "list", live: false,
+      ...(o.only !== undefined ? { only: o.only } : {}),
+    }), o.json));
 
 const gate = program
   .command("gate")

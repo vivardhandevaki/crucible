@@ -1,0 +1,33 @@
+id: HEALTH-1
+title: Expose a health endpoint
+state: ORACLES_APPROVED
+change: openspec/changes/health-endpoint/
+oracles:
+  - ORA-HEALTH-1a
+modules_allowed:
+  - src/app
+paths_forbidden:
+  - oracles/
+  - openspec/specs/
+  - openspec/schemas/
+  - ci/
+  - .github/
+  - settings/
+  - CLAUDE.md
+max_diff_lines: 150
+max_iterations: 3
+pr_sequence: []
+escalation: null
+history:
+  - state: DRAFT_SPEC
+    at: "2026-01-05T10:00:00Z"
+    by: owner
+  - state: SPEC_APPROVED
+    at: "2026-01-05T11:00:00Z"
+    by: owner
+  - state: ORACLES_AUTHORED
+    at: "2026-01-06T09:00:00Z"
+    by: owner
+  - state: ORACLES_APPROVED
+    at: "2026-01-06T15:00:00Z"
+    by: owner

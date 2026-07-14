@@ -52,6 +52,8 @@ crucible/                     # THIS repo — the framework
 | [`CRUCIBLE-CONCEPT.md`](./CRUCIBLE-CONCEPT.md) | Conceptual reference: principles, glossary, state machine, decision log. |
 | [`CRUCIBLE-IMPLEMENTATION-PLAN.md`](./CRUCIBLE-IMPLEMENTATION-PLAN.md) | Original phased plan. *Structural specifics superseded by ADR 0001; gate/principle rationale still current.* |
 | [`CRUCIBLE-USAGE-WALKTHROUGHS.md`](./CRUCIBLE-USAGE-WALKTHROUGHS.md) | Day-in-the-life procedures (from the consumer's point of view). |
+| [`evals/README.md`](./evals/README.md) | The pipeline eval suite — benchmark work orders that guard the harness against regression (`crucible eval run`). |
+| [`CALIBRATION.md`](./CALIBRATION.md) | The first-weeks calibration protocol and the exit criteria for enabling auto-merge. |
 
 ## The one operating rule
 
@@ -60,5 +62,7 @@ hotfixes. The loop is fast enough that going around it never wins.
 
 ## Status
 
-Bootstrapping — **Phase 0** (framework skeleton & governance). See ADR 0001 for the
-revised build order.
+Phases 0–6 landed: skeleton & governance, OpenSpec fork, the language-agnostic core
++ `crucible` CLI, the Gauntlet, the sandbox runner + reviewer + routing, the Console,
+and the **pipeline eval suite** (`crucible eval run` + `harness-evals` CI). Next up is
+calibration (see [`CALIBRATION.md`](./CALIBRATION.md)) and Phase 7 (the runtime layer).
