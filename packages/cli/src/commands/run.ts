@@ -90,7 +90,9 @@ export async function cmdRun(ctx: CmdContext, id: string): Promise<CmdResult> {
   if (!(await ctx.exec("git", ["clone", "--quiet", ctx.cwd, workspace])).ok) {
     return { exitCode: 3, data: { error: "clone failed" }, lines: ["environment error: workspace clone failed"] };
   }
-  await ctx.exec("git", ["-C", workspace, "checkout", "-qb", branch]);
+  // -B (not -b): the clone may inherit a stale wo/<ID> branch from a prior attempt
+  // in ctx.cwd; force-create it fresh at HEAD so the agent never lands on stale work.
+  await ctx.exec("git", ["-C", workspace, "checkout", "-qB", branch]);
   // The container has no git identity and the agent is denied `git config`, so the
   // runner sets a stable implementer identity in the workspace clone (D-class fix).
   await ctx.exec("git", ["-C", workspace, "config", "user.name", "crucible-implementer"]);
@@ -162,8 +164,11 @@ export async function cmdRun(ctx: CmdContext, id: string): Promise<CmdResult> {
     await ctx.exec("git", ["-C", workspace, "add", `${woDirRel}/workorder.yaml`]);
     await ctx.exec("git", ["-C", workspace, "commit", "-q", "-m", `chore(${wo.id}): advance to PR_OPEN`]);
 
-    await ctx.exec("git", ["-C", workspace, "push", "--quiet", "origin", `${branch}:${branch}`]); // clone origin = consumer repo
-    await ctx.exec("git", ["push", "--quiet", "origin", branch]); // consumer -> GitHub
+    // --force: a re-attempt legitimately replaces the branch (both hops may hold a
+    // stale wo/<ID> from a prior run). These are feature branches, never the default.
+    await ctx.exec("git", ["-C", workspace, "push", "--force", "--quiet", "origin", `${branch}:${branch}`]); // clone origin = consumer repo
+    await ctx.exec("git", ["push", "--force", "--quiet", "origin", branch]); // consumer -> GitHub
+    await ctx.exec("git", ["branch", "-D", branch]); // drop the local tracking branch in ctx.cwd so the next attempt starts clean
     // Ensure the labels `gh pr create` applies exist (idempotent; wo:<ID> is per-run).
     await ctx.exec("gh", ["label", "create", "crucible", "--force", "--color", "5319e7"]);
     await ctx.exec("gh", ["label", "create", `wo:${wo.id}`, "--force", "--color", "1d76db"]);
