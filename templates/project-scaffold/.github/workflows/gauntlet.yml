@@ -24,3 +24,8 @@ jobs:
       crucible-ref: "{{CRUCIBLE_REF}}"
     secrets:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  java:
+    uses: vivardhandevaki/crucible/.github/workflows/gauntlet-java.yml@{{CRUCIBLE_REF}}
+    secrets:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}

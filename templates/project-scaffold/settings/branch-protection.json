@@ -39,13 +39,13 @@
           { "context": "gauntlet / legitimacy" },
           { "context": "gauntlet / traceability" },
           { "context": "gauntlet / diff-size" },
-          { "context": "gauntlet / build" },
-          { "context": "gauntlet / style" },
-          { "context": "gauntlet / archunit" },
-          { "context": "gauntlet / tests" },
-          { "context": "gauntlet / mutation" },
-          { "context": "gauntlet / sast" },
-          { "context": "gauntlet / deps" },
+          { "context": "java / build" },
+          { "context": "java / style" },
+          { "context": "java / archunit" },
+          { "context": "java / tests" },
+          { "context": "java / mutation" },
+          { "context": "java / sast" },
+          { "context": "java / deps" },
           { "context": "review / reviewer-verdict" }
         ]
       }

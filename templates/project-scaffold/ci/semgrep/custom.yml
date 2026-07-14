@@ -1,0 +1,49 @@
+# Crucible custom SAST rules (plan §3.1.6) — protected path; grows via ratchet.
+rules:
+  - id: crucible-no-process-exec
+    languages: [java]
+    severity: ERROR
+    message: >
+      Process execution (Runtime.exec/ProcessBuilder) is forbidden in target-system
+      code. If genuinely required, escalate — this needs an owner-approved design.
+    patterns:
+      - pattern-either:
+          - pattern: Runtime.getRuntime().exec(...)
+          - pattern: new ProcessBuilder(...)
+
+  - id: crucible-no-string-concat-sql
+    languages: [java]
+    severity: ERROR
+    message: String-concatenated SQL — use parameterized queries (injection, rubric R1).
+    patterns:
+      - pattern-either:
+          - pattern: $STMT.executeQuery("..." + $X)
+          - pattern: $STMT.execute("..." + $X)
+          - pattern: $STMT.executeUpdate("..." + $X)
+          - pattern: $CONN.prepareStatement("..." + $X)
+
+  - id: crucible-no-getenv-outside-config
+    languages: [java]
+    severity: ERROR
+    message: >
+      System.getenv outside a designated config package — environment access must be
+      centralized (repeatability; hidden inputs break hermetic verification).
+    pattern: System.getenv(...)
+    paths:
+      exclude:
+        - "*/config/*"
+
+  - id: crucible-no-pii-in-logs
+    languages: [java]
+    severity: WARNING
+    message: >
+      Possible PII in a log statement (heuristic; tune during calibration — rubric R6
+      is the judgment backstop).
+    patterns:
+      - pattern-either:
+          - pattern: $LOG.info("...", <... $X.getEmail() ...>)
+          - pattern: $LOG.info("...", <... $X.getPhone() ...>)
+          - pattern: $LOG.info("...", <... $X.getSsn() ...>)
+          - pattern: $LOG.info("...", <... $X.getAddress() ...>)
+          - pattern: $LOG.debug("...", <... $X.getEmail() ...>)
+          - pattern: $LOG.warn("...", <... $X.getEmail() ...>)
