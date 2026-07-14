@@ -19,7 +19,7 @@ import { resolveAssets } from "../lib/assets.js";
 export const SUPPORTED_LANGS = ["java"] as const;
 const TOOLCHAIN_IMAGE = "ghcr.io/vivardhandevaki/crucible-toolchain:0.1.0";
 /** Framework ref consumers pin for reusable workflows; a tag per release. */
-const CRUCIBLE_REF = "v0.2.0";
+const CRUCIBLE_REF = "v0.2.1";
 const CONSUMER_DIRS = [
   "workorders",
   "oracles/properties",
