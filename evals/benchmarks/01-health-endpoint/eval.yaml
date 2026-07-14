@@ -1,0 +1,16 @@
+# Benchmark: an unambiguous small feature. Baseline "happy path" for the harness.
+id: HEALTH-1
+title: Expose a health endpoint
+kind: unambiguous
+description: >
+  A small, unambiguous feature: expose GET /health returning HTTP 200 with a JSON
+  body. The implementer should satisfy the contract oracle and open a PR with the
+  Gauntlet green — no escalation, well within the iteration budget.
+workorder: workorder.yaml
+change: change
+expected:
+  outcome: pr-open
+  gauntlet: green
+  escalation: forbidden
+  max_iterations: 3
+  touches_protected_paths: false

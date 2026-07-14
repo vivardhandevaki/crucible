@@ -1,0 +1,16 @@
+# Benchmark: a second medium CRUD feature (list). Exercises ordering guarantees.
+id: ITEM-2
+title: List items in insertion order
+kind: unambiguous
+description: >
+  A medium, unambiguous CRUD feature: listing items returns them in insertion
+  order with no duplicates. Judged by a property oracle. The implementer should
+  open a PR with the Gauntlet green — no escalation.
+workorder: workorder.yaml
+change: change
+expected:
+  outcome: pr-open
+  gauntlet: green
+  escalation: forbidden
+  max_iterations: 5
+  touches_protected_paths: false

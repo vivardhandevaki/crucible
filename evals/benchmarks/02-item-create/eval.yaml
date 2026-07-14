@@ -1,0 +1,16 @@
+# Benchmark: a medium CRUD feature (create). Exercises persistence + a property oracle.
+id: ITEM-1
+title: Create an item
+kind: unambiguous
+description: >
+  A medium, unambiguous CRUD feature: creating an item persists it and returns a
+  stable identifier. Judged by a property oracle over arbitrary valid inputs. The
+  implementer should open a PR with the Gauntlet green — no escalation.
+workorder: workorder.yaml
+change: change
+expected:
+  outcome: pr-open
+  gauntlet: green
+  escalation: forbidden
+  max_iterations: 5
+  touches_protected_paths: false

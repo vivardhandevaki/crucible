@@ -1,0 +1,33 @@
+id: ITEM-1
+title: Create an item
+state: ORACLES_APPROVED
+change: openspec/changes/item-create/
+oracles:
+  - ORA-ITEMC-1a
+modules_allowed:
+  - src/app
+paths_forbidden:
+  - oracles/
+  - openspec/specs/
+  - openspec/schemas/
+  - ci/
+  - .github/
+  - settings/
+  - CLAUDE.md
+max_diff_lines: 300
+max_iterations: 5
+pr_sequence: []
+escalation: null
+history:
+  - state: DRAFT_SPEC
+    at: "2026-01-08T10:00:00Z"
+    by: owner
+  - state: SPEC_APPROVED
+    at: "2026-01-08T13:00:00Z"
+    by: owner
+  - state: ORACLES_AUTHORED
+    at: "2026-01-09T09:00:00Z"
+    by: owner
+  - state: ORACLES_APPROVED
+    at: "2026-01-09T16:00:00Z"
+    by: owner

@@ -1,0 +1,33 @@
+id: REFUND-1
+title: Partial refund policy
+state: ORACLES_APPROVED
+change: openspec/changes/refund-policy/
+oracles:
+  - ORA-REFUND-1a
+modules_allowed:
+  - src/app
+paths_forbidden:
+  - oracles/
+  - openspec/specs/
+  - openspec/schemas/
+  - ci/
+  - .github/
+  - settings/
+  - CLAUDE.md
+max_diff_lines: 200
+max_iterations: 2
+pr_sequence: []
+escalation: null
+history:
+  - state: DRAFT_SPEC
+    at: "2026-01-15T10:00:00Z"
+    by: owner
+  - state: SPEC_APPROVED
+    at: "2026-01-15T15:00:00Z"
+    by: owner
+  - state: ORACLES_AUTHORED
+    at: "2026-01-16T09:00:00Z"
+    by: owner
+  - state: ORACLES_APPROVED
+    at: "2026-01-16T18:00:00Z"
+    by: owner
