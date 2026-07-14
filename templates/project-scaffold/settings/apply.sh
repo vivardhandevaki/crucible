@@ -70,9 +70,10 @@ fi
 # on demand by `crucible run`.) --force makes this idempotent.
 ensure_label() { gh label create "$1" -R "$REPO" --color "$2" --description "$3" --force >/dev/null 2>&1 || true; }
 ensure_label "crucible"       "5319e7" "Crucible-managed PR"
+ensure_label "auto-merge"     "0e8a16" "Routed AUTO — auto-merge enabled"
 ensure_label "harness-change" "fbca04" "Modifies the Crucible harness (protected paths)"
 for r in auth money data api deps; do ensure_label "risk:$r" "d93f0b" "Risk path: $r"; done
-echo "Labels ensured: crucible, harness-change, risk:{auth,money,data,api,deps}."
+echo "Labels ensured: crucible, auto-merge, harness-change, risk:{auth,money,data,api,deps}."
 
 # --- 3. Workflow token permissions ---------------------------------------------
 # The reviewer reusable workflow requests contents:write + pull-requests:write;
@@ -80,5 +81,11 @@ echo "Labels ensured: crucible, harness-change, risk:{auth,money,data,api,deps}.
 gh api --method PUT "repos/${REPO}/actions/permissions/workflow" \
   -f default_workflow_permissions=write -F can_approve_pull_request_reviews=true >/dev/null
 echo "Default workflow token permission set to: write."
+
+# --- 4. Allow auto-merge --------------------------------------------------------
+# Deterministic routing enables auto-merge on clean PRs; without this repo setting
+# that enablement silently no-ops and a fully-green PR sits unmerged.
+gh api --method PATCH "repos/${REPO}" -F allow_auto_merge=true >/dev/null
+echo "Auto-merge enabled at the repository level."
 
 echo "Done. Verify: gh api repos/${REPO}/rulesets --jq '.[].name'"
