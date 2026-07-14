@@ -25,7 +25,9 @@ export function createApp(cfg: Config): Express {
       repo: cfg.repoPath,
       github: gh.available,
       githubSlug: cfg.ghSlug,
-      claude: cfg.claudeToken !== null,
+      githubAuth: cfg.githubAuth, // "env" | "gh-cli" | "none"
+      claude: cfg.claudeMode !== "off",
+      claudeMode: cfg.claudeMode, // "token" | "host" | "off"
     });
   });
 

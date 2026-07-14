@@ -45,7 +45,10 @@ export interface Traceability {
   slug: string; rows: TraceRow[];
   requirements: Array<{ name: string; file: string; covered: boolean }>; unmapped: string[];
 }
-export interface Health { ok: boolean; repo: string; github: boolean; githubSlug: string | null; claude: boolean; }
+export interface Health {
+  ok: boolean; repo: string; github: boolean; githubSlug: string | null;
+  githubAuth: "env" | "gh-cli" | "none"; claude: boolean; claudeMode: "token" | "host" | "off";
+}
 export interface CliResult { ok: boolean; exitCode: number; data: unknown; stdout: string; stderr: string; command: string; }
 
 async function j<T>(url: string, init?: RequestInit): Promise<T> {

@@ -42,13 +42,15 @@ export function streamSpecChat(
   onChunk: (text: string) => void,
   onDone: (err?: string) => void,
 ): () => void {
-  if (!cfg.claudeToken) {
-    onDone("CLAUDE_CODE_OAUTH_TOKEN not set — run `claude setup-token` and add it to .env");
+  if (cfg.claudeMode === "off") {
+    onDone("No Claude available — log in with the `claude` CLI, or set CLAUDE_CODE_OAUTH_TOKEN (`claude setup-token`).");
     return () => {};
   }
+  // Prefer an explicit token; otherwise inherit the host `claude` login.
+  const env = cfg.claudeToken ? { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: cfg.claudeToken } : { ...process.env };
   const child = spawn("claude", ["-p", buildPrompt(turns), "--output-format", "text"], {
     cwd: cfg.repoPath,
-    env: { ...process.env, CLAUDE_CODE_OAUTH_TOKEN: cfg.claudeToken },
+    env,
   });
   child.stdout.on("data", (d) => onChunk(String(d)));
   let stderr = "";

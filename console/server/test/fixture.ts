@@ -54,7 +54,9 @@ export function makeFixture(): Config {
     repoPath: root,
     ghSlug: null,
     githubToken: null,
+    githubAuth: "none",
     claudeToken: null,
+    claudeMode: "off",
     crucibleBin: ["node", "-e", "process.exit(0)"],
   };
 }

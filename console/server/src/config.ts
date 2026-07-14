@@ -16,10 +16,14 @@ export interface Config {
   repoPath: string;
   /** GitHub "owner/repo" for the consumer repo, or null if not resolvable. */
   ghSlug: string | null;
-  /** Owner PAT for the GitHub API (reads + reviews/labels/PRs). */
+  /** GitHub API token (reads + reviews/labels/PRs). Reused from `gh` if unset. */
   githubToken: string | null;
-  /** Subscription token for the spec-chat `claude` calls. */
+  /** How the GitHub token was obtained, for the health display. */
+  githubAuth: "env" | "gh-cli" | "none";
+  /** Explicit Claude subscription token; null means "use the host `claude` login". */
   claudeToken: string | null;
+  /** Whether spec-chat can run: "token" (explicit) | "host" (logged-in claude) | "off". */
+  claudeMode: "token" | "host" | "off";
   /** How to invoke the crucible CLI: ["node", "<dist>/index.js"]. */
   crucibleBin: string[];
 }
@@ -36,6 +40,29 @@ function resolveGhSlug(repoPath: string): string | null {
     /* no remote — Console still works read-only against the worktree */
   }
   return null;
+}
+
+/** Reuse the existing `gh` CLI login so no separate PAT is needed. */
+function resolveGithubToken(): { token: string | null; how: "env" | "gh-cli" | "none" } {
+  const env = process.env["GITHUB_TOKEN"] ?? process.env["GH_TOKEN"];
+  if (env) return { token: env, how: "env" };
+  try {
+    const token = execFileSync("gh", ["auth", "token"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
+    if (token) return { token, how: "gh-cli" };
+  } catch {
+    /* gh not installed or not logged in — GitHub panes degrade gracefully */
+  }
+  return { token: null, how: "none" };
+}
+
+/** Is the host `claude` CLI present (and thus usable via its own login)? */
+function hostClaudeAvailable(): boolean {
+  try {
+    execFileSync("claude", ["--version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function resolveCrucibleBin(): string[] {
@@ -71,12 +98,17 @@ export function loadConfig(): Config {
     const manifest = parseYaml(readFileSync(manifestPath, "utf8")) as { owner?: string };
     if (!ghSlug && manifest.owner) ghSlug = `${manifest.owner}/${repoPath.split("/").pop()}`;
   }
+  const gh = resolveGithubToken();
+  const claudeToken = process.env["CLAUDE_CODE_OAUTH_TOKEN"] ?? null;
+  const claudeMode: Config["claudeMode"] = claudeToken ? "token" : hostClaudeAvailable() ? "host" : "off";
   return {
     port: Number(process.env["CONSOLE_PORT"] ?? 7317),
     repoPath,
     ghSlug,
-    githubToken: process.env["GITHUB_TOKEN"] ?? process.env["GH_TOKEN"] ?? null,
-    claudeToken: process.env["CLAUDE_CODE_OAUTH_TOKEN"] ?? null,
+    githubToken: gh.token,
+    githubAuth: gh.how,
+    claudeToken,
+    claudeMode,
     crucibleBin: resolveCrucibleBin(),
   };
 }
