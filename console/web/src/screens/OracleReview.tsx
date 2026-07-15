@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, type Traceability, type TraceRow } from "../lib/api";
-import { Cmd, EmptyState, Toast } from "../components";
+import { Cmd, EmptyState, Section, Toast } from "../components";
+import { useSetWorkflow } from "../lib/workflow";
 
 export function OracleReview() {
   const { id = "" } = useParams();
@@ -10,6 +11,8 @@ export function OracleReview() {
   const [err, setErr] = useState<string | null>(null);
   const [openRow, setOpenRow] = useState<TraceRow | null>(null);
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
+
+  useSetWorkflow({ section: "Oracle Review", feature: { id }, stage: "ORACLES_AUTHORED" });
 
   useEffect(() => {
     api.workorder(id).then((wo) => {
@@ -32,19 +35,20 @@ export function OracleReview() {
 
   return (
     <>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-        <h1>{id} · Oracle Review <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>{slug}</span></h1>
+      <div className="pagehead">
+        <h1>{id} <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· Oracle Review — {slug}</span></h1>
         <button className="btn-primary" disabled={trace.unmapped.length > 0} onClick={approve}>
           Approve Oracles → PR <Cmd cmd={`git checkout -b oracles/${slug} && gh pr create`} />
         </button>
       </div>
 
       {trace.unmapped.length > 0 && (
-        <div className="toast err" style={{ position: "static", marginBottom: 16, maxWidth: "none" }}>
-          {trace.unmapped.length} requirement(s) without an oracle: {trace.unmapped.join(", ")}. Approval is blocked until every SHALL/MUST maps.
+        <div className="callout">
+          <strong>{trace.unmapped.length} requirement(s) without an oracle:</strong> {trace.unmapped.join(", ")}. Approval is blocked until every SHALL/MUST maps.
         </div>
       )}
 
+      <Section title="Traceability" aside={`${trace.rows.length} oracle rows · ${trace.requirements.length} requirements`}>
       <table className="tbl">
         <thead><tr><th>REQ</th><th>Requirement</th><th>Oracle IDs</th><th>Type</th><th>Impl</th><th>Status</th></tr></thead>
         <tbody>
@@ -68,9 +72,10 @@ export function OracleReview() {
           ))}
         </tbody>
       </table>
+      </Section>
 
       {openRow && (
-        <div className="pane" style={{ marginTop: 16 }}>
+        <div className="pane anim-in" style={{ marginTop: 16 }}>
           <h4>{openRow.implPath} · {openRow.ids.join(", ")}</h4>
           <pre className="src">{openRow.implSource ?? "(source not found on this branch)"}</pre>
         </div>
