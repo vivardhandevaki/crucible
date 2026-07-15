@@ -49,8 +49,13 @@ docker compose -f console/docker-compose.yml up
   parses artifacts with the shared `@crucible/cli/core`. The **only writers** are the CLI
   shell-out, GitHub API calls, and the approval-PR flow — enforced by the §5.4 guarantee tests.
   Runs are spawned **detached**, so killing the Console never aborts a sandbox run.
-- **Web** (`console/web`, React + Vite): the §5.5 minimalist doctrine — deep-amber accent,
-  system font, 4px grid, tabular numerals, dark mode via `prefers-color-scheme`.
+- **Web** (`console/web`, React + Vite): an elegant, workflow-first instrument panel —
+  the "Indigo Midnight" design system (`src/styles.css`). Dark by default with a light
+  theme (toggle in the top bar, persisted to `localStorage`). A persistent workflow bar
+  shows *Project › Feature › Stage* with a compact phase rail (Spec → Oracles → Build →
+  Review → Ship); screens are grouped into labelled sections and use subtle,
+  motion-reduced-aware animation to convey streaming, advancing, and arriving. Retains
+  the doctrine's substance: system font, 4px grid, tabular numerals, hairline borders.
 
 ## Tests
 

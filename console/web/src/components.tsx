@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { GATE_CONTEXTS, type Check, type PrSummary } from "./lib/api";
+import { PHASES, phaseOf } from "./lib/workflow";
 
 /** The 11-gate check-dot row (Board cards + PR views). */
 export function CheckDots({ pr }: { pr: PrSummary | null }): ReactNode {
@@ -24,12 +25,53 @@ export function Cmd({ cmd }: { cmd: string }): ReactNode {
   );
 }
 
-export function EmptyState({ title, hint, cmd }: { title: string; hint?: string; cmd?: string }): ReactNode {
+/** A labelled section with a trailing divider rule — the workflow's visual grouping. */
+export function Section({ title, aside, children }: { title: string; aside?: ReactNode; children: ReactNode }): ReactNode {
   return (
-    <div className="empty">
-      <div style={{ fontSize: 15, marginBottom: 8 }}>{title}</div>
-      {hint && <div style={{ marginBottom: 8 }}>{hint}</div>}
+    <section className="section anim-in">
+      <div className="section-head">
+        <span className="section-title">{title}</span>
+        {aside && <span className="section-aside">{aside}</span>}
+        <span className="section-rule" />
+      </div>
+      {children}
+    </section>
+  );
+}
+
+export function EmptyState({ title, hint, cmd, icon = "◇" }: { title: string; hint?: string; cmd?: string; icon?: string }): ReactNode {
+  return (
+    <div className="empty anim-in">
+      <div className="empty-icon">{icon}</div>
+      <div style={{ fontSize: 15, marginBottom: 6, color: "var(--text)" }}>{title}</div>
+      {hint && <div style={{ marginBottom: cmd ? 10 : 0 }}>{hint}</div>}
       {cmd && <div>Next: <code>{cmd}</code></div>}
+    </div>
+  );
+}
+
+/** Compact 5-phase rail for the workflow bar (Spec → Oracles → Build → Review → Ship). */
+export function PhaseRail({ state }: { state: string | undefined }): ReactNode {
+  if (state === "ESCALATED") {
+    return (
+      <div className="phaserail" title="Escalated — resolve via a spec/oracle fix">
+        <span className="phase esc"><span className="bead" />Escalated</span>
+      </div>
+    );
+  }
+  const current = phaseOf(state);
+  const curIdx = current ? PHASES.indexOf(current) : -1;
+  return (
+    <div className="phaserail">
+      {PHASES.map((p, i) => {
+        const cls = i < curIdx ? "done" : i === curIdx ? "current" : "";
+        return (
+          <span key={p} style={{ display: "inline-flex", alignItems: "center" }}>
+            {i > 0 && <span className={`phase-link ${i <= curIdx ? "done" : ""}`} />}
+            <span className={`phase ${cls}`}><span className="bead" />{p}</span>
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -39,15 +81,16 @@ const HAPPY_PATH = [
   "PACKAGED", "IMPLEMENTING", "PR_OPEN", "GATES_GREEN", "AI_REVIEWED", "MERGED", "DONE",
 ];
 
+/** Detailed per-state stepper (Run Monitor). */
 export function Stepper({ state }: { state: string }): ReactNode {
   if (state === "ESCALATED") {
-    return <div className="stepper"><span className="step current">ESCALATED</span></div>;
+    return <div className="stepper"><span className="step esc">ESCALATED</span></div>;
   }
   const idx = HAPPY_PATH.indexOf(state);
   return (
     <div className="stepper">
       {HAPPY_PATH.map((s, i) => (
-        <span key={s} className={`step ${i < idx ? "done" : ""} ${i === idx ? "current" : ""}`}>{s}</span>
+        <span key={s} className={`step ${i < idx ? "done" : ""} ${i === idx ? "current" : ""}`}>{s.replace(/_/g, " ")}</span>
       ))}
     </div>
   );
@@ -82,5 +125,19 @@ export function Toast({ msg, err, onClose }: { msg: string; err?: boolean; onClo
     <div className={`toast ${err ? "err" : ""}`} onClick={onClose} role="status">
       {msg}
     </div>
+  );
+}
+
+/** Sun/moon theme toggle for the top bar. */
+export function ThemeToggle({ theme, onToggle }: { theme: "dark" | "light"; onToggle: () => void }): ReactNode {
+  return (
+    <button
+      className="icon-btn"
+      onClick={onToggle}
+      title={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label="Toggle theme"
+    >
+      {theme === "dark" ? "☾" : "☀"}
+    </button>
   );
 }
