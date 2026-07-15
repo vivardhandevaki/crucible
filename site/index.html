@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Crucible — Determinism for AI-driven development</title>
+<meta name="description" content="Crucible is an opinionated framework for building software end-to-end with AI agents inside a container of enforcement that never yields. Humans author the specs and the tests that judge code; agents write the code; a deterministic state machine guarantees nothing ships unverified." />
+<style>
+  :root {
+    --bg: #fbfaf8;
+    --bg-panel: #ffffff;
+    --bg-sunk: #f4f2ee;
+    --ink: #1c1b19;
+    --ink-soft: #55524c;
+    --ink-faint: #8a867e;
+    --line: #e7e3dc;
+    --line-strong: #d8d3ca;
+    --accent: #b8461f;
+    --accent-soft: #f7ede8;
+    --accent-ink: #9a3a19;
+    --ok: #2f6b43;
+    --ok-bg: #edf5ef;
+    --warn: #8a6d1a;
+    --warn-bg: #f8f2e2;
+    --mono: "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --serif: "Iowan Old Style", "Palatino Linotype", "Georgia", serif;
+    --maxw: 760px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--accent-soft); }
+
+  /* ---------- Layout ---------- */
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  section:first-of-type { border-top: none; }
+
+  /* ---------- Nav ---------- */
+  header.topbar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(251,250,248,0.85);
+    backdrop-filter: saturate(180%) blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .topbar-inner {
+    max-width: 1080px; margin: 0 auto; padding: 12px 24px;
+    display: flex; align-items: center; gap: 20px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: -0.01em; }
+  .brand .mark {
+    width: 22px; height: 22px; border-radius: 5px;
+    background: var(--accent);
+    display: inline-block; position: relative; flex: none;
+  }
+  .brand .mark::after {
+    content: ""; position: absolute; inset: 6px 6px auto 6px; height: 3px;
+    background: var(--bg); border-radius: 2px;
+    box-shadow: 0 5px 0 var(--bg);
+  }
+  .topbar nav { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+  .topbar nav a {
+    color: var(--ink-soft); text-decoration: none; font-size: 14px;
+    padding: 6px 10px; border-radius: 7px;
+  }
+  .topbar nav a:hover { color: var(--ink); background: var(--bg-sunk); }
+  @media (max-width: 760px){ .topbar nav { display:none; } }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 92px 0 72px; text-align: left; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent-ink); margin-bottom: 22px;
+  }
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(38px, 6vw, 60px);
+    line-height: 1.05; letter-spacing: -0.02em; margin: 0 0 24px;
+    font-weight: 600;
+  }
+  .lede { font-size: 21px; color: var(--ink-soft); line-height: 1.55; margin: 0 0 20px; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+  .hero-meta {
+    margin-top: 34px; display: flex; gap: 10px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 12.5px;
+  }
+  .chip {
+    border: 1px solid var(--line-strong); border-radius: 999px;
+    padding: 5px 13px; color: var(--ink-soft); background: var(--bg-panel);
+  }
+
+  /* ---------- Typography ---------- */
+  h2 {
+    font-family: var(--serif); font-weight: 600;
+    font-size: clamp(27px, 4vw, 34px); letter-spacing: -0.015em;
+    line-height: 1.15; margin: 0 0 6px;
+  }
+  .section-kicker {
+    font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent-ink); margin-bottom: 14px;
+  }
+  h3 {
+    font-size: 20px; letter-spacing: -0.01em; margin: 40px 0 10px; font-weight: 650;
+  }
+  h4 { font-size: 16px; margin: 26px 0 8px; font-weight: 650; }
+  p { margin: 0 0 16px; }
+  a { color: var(--accent-ink); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 650; }
+  ul, ol { padding-left: 22px; margin: 0 0 16px; }
+  li { margin-bottom: 8px; }
+  code {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--bg-sunk); border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: 5px; white-space: nowrap;
+  }
+  .subhead { font-size: 18.5px; color: var(--ink-soft); margin: 8px 0 28px; }
+
+  /* ---------- ELI5 block ---------- */
+  .eli5 {
+    background: var(--accent-soft);
+    border: 1px solid #eeddd3;
+    border-radius: 12px;
+    padding: 18px 20px 6px;
+    margin: 20px 0 26px;
+  }
+  .eli5 .tag {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent-ink); font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .eli5 .tag::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent); display: inline-block;
+  }
+  /* ELI5 is now a collapsed-by-default disclosure. */
+  details.eli5 > summary.tag {
+    cursor: pointer; list-style: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  details.eli5 > summary.tag::-webkit-details-marker { display: none; }
+  details.eli5:not([open]) > summary.tag { margin-bottom: 0; }
+  details.eli5 > summary.tag::after {
+    content: ""; width: 6px; height: 6px; margin-left: 1px;
+    border-right: 2px solid var(--accent-ink);
+    border-bottom: 2px solid var(--accent-ink);
+    transform: translateY(-1px) rotate(-45deg);
+    transition: transform 0.15s ease;
+  }
+  details.eli5[open] > summary.tag::after { transform: translateY(-2px) rotate(45deg); }
+  details.eli5 > summary.tag:hover { color: var(--accent); }
+  .eli5 p { color: #4a2c1c; }
+  .eli5 p:last-child { margin-bottom: 12px; }
+
+  /* ---------- Drill-down ---------- */
+  details.drill {
+    border: 1px solid var(--line-strong);
+    border-radius: 12px; margin: 18px 0 24px; background: var(--bg-panel);
+    overflow: hidden;
+  }
+  details.drill > summary {
+    cursor: pointer; list-style: none; padding: 14px 18px;
+    font-weight: 600; font-size: 15px; color: var(--ink);
+    display: flex; align-items: center; gap: 10px;
+    user-select: none;
+  }
+  details.drill > summary::-webkit-details-marker { display: none; }
+  details.drill > summary .caret {
+    width: 16px; height: 16px; flex: none; transition: transform .18s ease;
+    color: var(--ink-faint);
+  }
+  details.drill[open] > summary .caret { transform: rotate(90deg); }
+  details.drill > summary .label-kind {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent-ink);
+    background: var(--accent-soft); border-radius: 5px; padding: 2px 7px;
+    margin-left: auto; font-weight: 600;
+  }
+  details.drill[open] > summary { border-bottom: 1px solid var(--line); }
+  .drill-body { padding: 4px 20px 6px; }
+  .drill-body > *:first-child { margin-top: 14px; }
+  /* drill variants */
+  details.drill.ex > summary .label-kind { color: var(--ok); background: var(--ok-bg); }
+  details.drill.why > summary .label-kind { color: var(--warn); background: var(--warn-bg); }
+  details.drill.diag > summary .label-kind { color: var(--ink-soft); background: var(--bg-sunk); }
+
+  /* ---------- Code blocks ---------- */
+  .code-cap {
+    font-family: var(--mono); font-size: 12px; color: var(--ink-faint);
+    margin: 18px 0 -8px; letter-spacing: 0.02em;
+  }
+  pre {
+    margin: 14px 0; background: #201f1d; color: #e9e5dd;
+    border-radius: 10px; padding: 15px 17px; overflow-x: auto;
+    font-family: var(--mono); font-size: 12.8px; line-height: 1.6;
+    border: 1px solid #34322e;
+  }
+  pre code { background: none; border: none; padding: 0; white-space: pre; color: inherit; font-size: inherit; }
+  pre .c { color: #8f8a80; font-style: italic; }
+  pre .k { color: #e0966b; }
+  pre .s { color: #a7c58b; }
+  pre .t { color: #7fb0c9; }
+  pre .bad { color: #ef9a86; }
+  pre .good { color: #9fce9a; }
+
+  /* ---------- Diagrams ---------- */
+  .diagram {
+    background: var(--bg-sunk); border: 1px solid var(--line-strong);
+    border-radius: 12px; padding: 22px 20px; margin: 22px 0;
+  }
+  .diagram .dtitle {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-faint); margin-bottom: 18px; text-align: center;
+  }
+  .vflow { display: grid; gap: 0; justify-items: center; }
+  .vflow .node {
+    background: var(--bg-panel); border: 1px solid var(--line-strong); border-radius: 9px;
+    padding: 9px 16px; font-size: 14px; font-weight: 600; text-align: center;
+    max-width: 480px; width: 100%;
+  }
+  .vflow .node small { display: block; font-weight: 400; color: var(--ink-soft); font-size: 12.5px; margin-top: 2px; }
+  .vflow .node.human { border-color: #e3b49f; background: var(--accent-soft); color: var(--accent-ink); }
+  .vflow .node.human small { color: #9a5b3f; }
+  .vflow .node.agent { border-color: #bcd8c3; background: var(--ok-bg); color: var(--ok); }
+  .vflow .node.agent small { color: #3f6b4d; }
+  .vflow .node.gate { border-color: #e6cf99; background: var(--warn-bg); color: var(--warn); }
+  .vflow .node.gate small { color: #7a641f; }
+  .vflow .down { color: var(--ink-faint); font-size: 16px; line-height: 1.3; padding: 4px 0; text-align: center; }
+  .vflow .down small { font-family: var(--mono); font-size: 10.5px; margin-left: 8px; color: var(--ink-faint); }
+  .vflow .split { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); padding: 4px 0; text-align: center; }
+
+  /* ownership lanes */
+  .lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 22px 0; }
+  @media (max-width: 640px){ .lanes { grid-template-columns: 1fr; } }
+  .lane-col { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--bg-panel); }
+  .lane-col h5 { margin: 0; padding: 10px 14px; font-size: 12.5px; letter-spacing: 0.04em; text-align: center; text-transform: uppercase; }
+  .lane-col.human h5 { background: var(--accent-soft); color: var(--accent-ink); }
+  .lane-col.agent h5 { background: var(--ok-bg); color: var(--ok); }
+  .lane-col.auto h5 { background: var(--bg-sunk); color: var(--ink-soft); }
+  .lane-col ul { margin: 12px 14px; padding-left: 18px; font-size: 13.5px; }
+  .lane-col li { margin-bottom: 6px; color: var(--ink-soft); }
+
+  /* ---------- Dictionary ---------- */
+  .dict { display: grid; gap: 12px; margin: 24px 0; }
+  .dict .entry { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-panel); padding: 15px 20px; }
+  .dict .term-h { font-weight: 650; font-size: 17px; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .dict .pos { font-family: var(--serif); font-style: italic; color: var(--ink-faint); font-size: 14px; font-weight: 400; }
+  .dict .def { margin: 10px 0 0; font-size: 14.5px; color: var(--ink-soft); }
+  .dict .def .lbl {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase;
+    font-weight: 600; margin-right: 9px; padding: 2px 7px; border-radius: 5px; white-space: nowrap;
+  }
+  .dict .def.plain .lbl { background: var(--bg-sunk); color: var(--ink-soft); }
+  .dict .def.ours .lbl { background: var(--accent-soft); color: var(--accent-ink); }
+  .dict .def.ours { color: var(--ink); }
+
+  /* ---------- Cards / principles ---------- */
+  .cards { display: grid; gap: 14px; margin: 24px 0; }
+  .card {
+    border: 1px solid var(--line); border-radius: 12px; background: var(--bg-panel);
+    padding: 18px 20px;
+  }
+  .card .num {
+    font-family: var(--mono); font-size: 12px; color: var(--accent-ink);
+    font-weight: 600;
+  }
+  .card h4 { margin: 4px 0 6px; font-size: 16.5px; }
+  .card p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+
+  /* ---------- Callout ---------- */
+  .rule {
+    border-left: 3px solid var(--accent);
+    background: var(--bg-panel);
+    padding: 16px 20px; border-radius: 0 10px 10px 0; margin: 26px 0;
+    font-size: 17px;
+  }
+  .rule .rule-tag {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-ink); display: block; margin-bottom: 4px;
+  }
+  .rule.warn { border-left-color: #d9822b; background: rgba(217,130,43,0.07); }
+  .rule.warn .rule-tag { color: #b5670f; }
+
+  /* ---------- Tables ---------- */
+  .tablewrap { overflow-x: auto; margin: 22px 0; border: 1px solid var(--line); border-radius: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--bg-sunk); font-weight: 650; font-size: 13px; letter-spacing: 0.01em; }
+  tr:last-child td { border-bottom: none; }
+  td code { white-space: normal; }
+
+  /* ---------- Pipeline diagram ---------- */
+  .flow {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch;
+    margin: 24px 0; font-family: var(--mono); font-size: 12.5px;
+  }
+  .flow .step {
+    background: var(--bg-panel); border: 1px solid var(--line-strong);
+    border-radius: 8px; padding: 8px 11px; display: flex; align-items: center; gap: 8px;
+  }
+  .flow .step .who {
+    font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 5px; border-radius: 4px; font-weight: 600;
+  }
+  .who.human { background: var(--accent-soft); color: var(--accent-ink); }
+  .who.auto { background: var(--bg-sunk); color: var(--ink-soft); }
+  .who.agent { background: var(--ok-bg); color: var(--ok); }
+  .flow .arrow { color: var(--ink-faint); align-self: center; }
+
+  /* ---------- Layer stack ---------- */
+  .layers { margin: 24px 0; display: grid; gap: 6px; }
+  .layer {
+    border: 1px solid var(--line-strong); border-radius: 10px; padding: 14px 18px;
+    background: var(--bg-panel);
+  }
+  .layer .lname { font-weight: 650; font-size: 15px; }
+  .layer .lname span { font-family: var(--mono); font-size: 11px; color: var(--accent-ink); margin-left: 8px; }
+  .layer p { margin: 4px 0 0; font-size: 14.5px; color: var(--ink-soft); }
+  .layer.l1 { background: #fdfcfa; }
+
+  /* ---------- Steps (workflow) ---------- */
+  ol.steps { list-style: none; padding: 0; counter-reset: s; margin: 24px 0; }
+  ol.steps > li {
+    position: relative; padding: 0 0 22px 46px; margin: 0;
+    border-left: 2px solid var(--line); margin-left: 15px;
+  }
+  ol.steps > li:last-child { border-left-color: transparent; padding-bottom: 0; }
+  ol.steps > li::before {
+    counter-increment: s; content: counter(s);
+    position: absolute; left: -16px; top: -2px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--bg-panel); border: 2px solid var(--line-strong);
+    color: var(--accent-ink); font-family: var(--mono); font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  ol.steps > li h4 { margin: 2px 0 6px; }
+  ol.steps > li p { font-size: 15.5px; color: var(--ink-soft); margin: 0 0 8px; }
+  .term {
+    font-family: var(--mono); font-size: 13px; color: var(--ink-soft);
+    background: var(--bg-sunk); border: 1px solid var(--line);
+    border-radius: 7px; padding: 7px 11px; margin-top: 6px; display: block;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .term b { color: var(--accent-ink); font-weight: 600; }
+  .statepill {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    background: var(--ok-bg); color: var(--ok); border-radius: 5px;
+    padding: 2px 8px; margin-top: 8px; font-weight: 600;
+  }
+
+  /* ---------- FAQ ---------- */
+  details.faq {
+    border-bottom: 1px solid var(--line); padding: 4px 0;
+  }
+  details.faq > summary {
+    cursor: pointer; list-style: none; padding: 16px 4px;
+    font-weight: 600; font-size: 17px; display: flex; gap: 12px; align-items: flex-start;
+  }
+  details.faq > summary::-webkit-details-marker { display: none; }
+  details.faq > summary .q { color: var(--accent-ink); font-family: var(--serif); flex: none; }
+  details.faq .a { padding: 0 4px 18px 30px; color: var(--ink-soft); }
+  details.faq .a p:last-child { margin-bottom: 0; }
+
+  /* ---------- Misc ---------- */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 640px){ .two-col { grid-template-columns: 1fr; } }
+  .muted { color: var(--ink-faint); font-size: 14px; }
+  hr.soft { border: none; border-top: 1px solid var(--line); margin: 36px 0; }
+  footer {
+    border-top: 1px solid var(--line); padding: 48px 0 72px; color: var(--ink-faint); font-size: 14px;
+  }
+  footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .badge-ok { color: var(--ok); font-weight: 600; }
+  .badge-warn { color: var(--warn); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <span class="brand"><span class="mark"></span> Crucible</span>
+    <nav>
+      <a href="#purpose">Purpose</a>
+      <a href="#principles">Principles</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#how">How it works</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#use">How to use</a>
+      <a href="#faq">FAQ</a>
+      <a href="#dictionary">Dictionary</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<div class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Determinism for AI-driven development</div>
+    <h1>Nothing leaves the crucible unverified.</h1>
+    <p class="lede">
+      Crucible is an opinionated framework for building software end-to-end with AI agents,
+      inside <strong>a container of enforcement that never yields</strong>.
+    </p>
+    <p class="lede">
+      Humans author the <strong>specifications</strong> and the executable <strong>tests that judge code</strong>.
+      Agents author the <strong>implementation</strong>. And a deterministic state machine — enforced by
+      git, CI, and branch protection — guarantees that no code reaches production without passing
+      through every mandatory verification step.
+    </p>
+    <div class="hero-meta">
+      <span class="chip">state machine + gates + harness + console</span>
+      <span class="chip">humans review the judges, not the code</span>
+      <span class="chip">git is the database</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PURPOSE ============ -->
+<section id="purpose">
+  <div class="wrap">
+    <div class="section-kicker">01 — Purpose &amp; thought process</div>
+    <h2>Why Crucible exists</h2>
+    <p class="subhead">The problem isn't that AI can't write the code. It's that verification effort is conserved, not eliminated.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        AI can write most code by itself now. So people say: “stop checking it, just trust it.”
+        But someone still has to make sure the code is right. If the human stops looking and nothing
+        takes their place, the code isn't <em>trusted</em> — it's just <em>unchecked</em>. Those are
+        very different things.
+      </p>
+      <p>
+        Crucible's fix: let the AI write code fast, but it has to pass tests that a <em>person wrote
+        and okayed first</em>. Think of it like a teacher who writes the answer key before the students
+        take the exam. One answer key can grade a thousand exams the exact same way — fast, and fair.
+        The human's job changes from “read every line of code” to “write a really good answer key.”
+      </p>
+    </details>
+
+    <p>
+      A <strong>crucible</strong> is a vessel that withstands extreme heat while the material inside is
+      melted, purified, and tested. In this system, AI agents do fast, high-volume work <em>inside</em>
+      a container of enforcement that never yields. That metaphor is the whole design.
+    </p>
+
+    <p>The naive responses both fail:</p>
+    <ul>
+      <li><strong>“Stop reviewing PRs, trust the model.”</strong> Verification doesn't vanish; it silently becomes <em>absence of verification</em>.</li>
+      <li><strong>“Review everything as before.”</strong> Throws away the productivity gain and can't scale to agent-level PR volume.</li>
+    </ul>
+
+    <p>
+      So Crucible makes one core inversion relative to traditional development:
+    </p>
+
+    <div class="rule">
+      <span class="rule-tag">The inversion</span>
+      The artifact humans review shifts from <strong>code</strong> to <strong>the things that judge code</strong>.
+      Line-by-line human review is kept only for a mechanically-identified high-risk slice (~15–20% of PRs)
+      plus a random audit sample. Everything else is verified by CI gates and an adversarial reviewer agent.
+    </div>
+
+    <details class="drill why">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Why is judging the judges better than reading the code?
+        <span class="label-kind">Why this?</span>
+      </summary>
+      <div class="drill-body">
+        <p>Three arguments, each independent:</p>
+        <ul>
+          <li><strong>Leverage.</strong> A human reading a diff checks <em>one</em> change. A human approving an oracle checks <em>every future change</em> that oracle will ever judge — including changes that don't exist yet. Effort spent on the judge compounds; effort spent on the diff does not.</li>
+          <li><strong>It doesn't scale the wrong thing.</strong> Agent PR volume grows without bound. Human reading time doesn't. If trust depends on reading, throughput is capped by the slowest human; if trust depends on gates, throughput is capped by CI, which scales horizontally.</li>
+          <li><strong>Humans are worse at the code-reading task than we admit.</strong> Line-by-line review reliably catches style and obvious logic errors and reliably <em>misses</em> the things that actually hurt: a missing index that's quietly quadratic, a race condition, a subtly weakened assertion. Those are exactly what property tests, mutation testing, and static analysis catch deterministically.</li>
+        </ul>
+        <p>
+          The counter-argument — “but a human sees things no test can” — is <em>accepted</em>, not dismissed.
+          That's precisely why ~15–20% of PRs (the risky ones) plus a random 10% audit are still read by a
+          human. Review is kept as a scalpel, not thrown away as a blanket.
+        </p>
+      </div>
+    </details>
+
+    <h3>The failure modes it's designed against</h3>
+    <p>Unverified AI-driven development fails in specific, repeatable ways. Each is a thing Crucible is built to catch mechanically.</p>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        The six failure modes, in detail
+        <span class="label-kind">Drill down</span>
+      </summary>
+      <div class="drill-body">
+        <ul>
+          <li><strong>Vacuous verification.</strong> The agent writes both the code <em>and</em> the tests, so the tests describe what the code does, not what it should do. Forty green tests can encode one misunderstanding.</li>
+          <li><strong>Reward-hacking to green.</strong> Agents optimize “make the checks pass” and find degenerate paths — weakening assertions, editing fixtures, mocking away the failing component, pinning a different library version, mutating shared state.</li>
+          <li><strong>Blind spots of behavioral testing.</strong> Security holes with no functional symptom, license/supply-chain risk in hallucinated dependencies, quietly quadratic algorithms that pass on small fixtures, PII in logs, semantic drift near the task.</li>
+          <li><strong>Architectural erosion.</strong> Agents have no taste and no long-term memory of your architecture. Without mechanical boundaries, hundreds of PRs converge on a ball of mud.</li>
+          <li><strong>Process drift.</strong> LLMs are unreliable at self-enforcing multi-step processes. “Usually follows the workflow” is exactly what repeatability forbids.</li>
+          <li><strong>Correlated review errors.</strong> An AI reviewer that shares the author agent's context inherits its rationalizations — it will bless the same mistakes.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: how “40 green tests” can encode one bug
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>
+          Say the requirement is <em>“a refund is the item price times the quantity.”</em> An agent that writes
+          its own test often writes the test <em>from the same idea it used to write the code</em> — so if the
+          idea is wrong, both are wrong together and the test still passes:
+        </p>
+        <div class="code-cap">the code (has a bug: forgets quantity)</div>
+        <pre><code><span class="k">Money</span> refundFor(Item item, <span class="k">int</span> qty) {
+  <span class="k">return</span> item.price();            <span class="c">// BUG: should be price × qty</span>
+}</code></pre>
+        <div class="code-cap">the agent's own test (encodes the SAME bug — passes anyway)</div>
+        <pre><code><span class="c">// re-derives "expected" with the same wrong idea</span>
+Money expected = item.price();          <span class="bad">// ← also forgets qty</span>
+assertEquals(expected, refundFor(item, <span class="t">3</span>));   <span class="good">// GREEN ✓ (but wrong!)</span></code></pre>
+        <p>
+          The test is green. Add thirty-nine more tests written the same way and you have forty green tests
+          that all agree with one misunderstanding. This is why the test that <em>judges</em> the requirement
+          must be written by the human, up front, and must state the rule <em>independently</em> of the code —
+          see the oracle example in the next section.
+        </p>
+      </div>
+    </details>
+
+    <h3>The four design requirements, in priority order</h3>
+    <div class="cards">
+      <div class="card"><span class="num">01</span><h4>Correctness &amp; verifiability</h4><p>Every requirement is judged by a machine-executable oracle. Human trust is placed in oracles and gates, not in reading every diff.</p></div>
+      <div class="card"><span class="num">02</span><h4>Extensibility</h4><p>Architecture rules are enforced mechanically, not culturally, so hundreds of agent-authored PRs cannot erode structure. Adding a workflow step is “add a required check,” not “rewrite an orchestrator.”</p></div>
+      <div class="card"><span class="num">03</span><h4>Repeatability</h4><p>The agent harness is versioned code with its own regression suite. Builds are hermetic; toolchain and schema versions are pinned. Same inputs, same results.</p></div>
+      <div class="card"><span class="num">04</span><h4>Reliability</h4><p>Pre-merge gates plus runtime verification (canary, SLO auto-rollback) plus a ratchet: every escaped defect becomes a new permanent oracle, rubric line, or architecture rule.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VOCABULARY ============ -->
+<section id="vocab">
+  <div class="wrap">
+    <div class="section-kicker">02 — The words that matter</div>
+    <h2>A shared vocabulary</h2>
+    <p class="subhead">Consistent names matter because agents read these documents too. A few terms carry the whole model.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        The most important word here is <strong>oracle</strong>. An oracle is just an
+        <em>automatic judge</em> — a little program that says “pass” or “fail” all by itself, no human
+        needed. It could be a test, or a database rule.
+      </p>
+      <p>
+        The slogan to remember: <em>“a requirement without an oracle is a wish.”</em> If there's no
+        automatic judge for a rule, the AI treats that rule as optional — and when the AI is trying hard
+        to make everything pass, anything optional quietly disappears. So if you really want something,
+        write a judge for it.
+      </p>
+    </details>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Term</th><th>What it means</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Oracle</strong></td><td>A machine-executable judge of a requirement — a property test, contract test, DB constraint, architecture rule, or CI check. It decides pass/fail automatically. <em>“A requirement without an oracle is a wish.”</em></td></tr>
+          <tr><td><strong>Work order</strong><br><code>workorder.yaml</code></td><td>The per-feature manifest: current state, scope (which modules), constraints (diff cap, iteration budget), and references to the spec change and oracle IDs. It is <em>the authorization to do work</em>.</td></tr>
+          <tr><td><strong>The Gauntlet</strong></td><td>The full set of required CI checks every PR must pass: build, style, architecture, tests, mutation testing, security scan, dependency scan, traceability, diff-size, work-order legitimacy, and the reviewer verdict.</td></tr>
+          <tr><td><strong>Harness</strong></td><td>Everything around the model that shapes agent behavior: <code>CLAUDE.md</code>, skills, prompt templates, the sandbox runner, permission config, the CLI, iteration budgets, the escalation protocol. Treated as a product — versioned, reviewed, regression-tested.</td></tr>
+          <tr><td><strong>Implementer agent</strong></td><td>A stateless agent invoked in an ephemeral sandbox to implement one work order. Judged only by oracles and gates. Cannot modify specs, oracles, CI, or the harness.</td></tr>
+          <tr><td><strong>Reviewer agent</strong></td><td>A separate agent — separate context, never sees the implementer's reasoning — that audits every diff against a concrete rubric and posts a machine-parseable verdict as a required check.</td></tr>
+          <tr><td><strong>Escalation</strong></td><td>A structured file an agent writes when blocked or when the spec is ambiguous. It ends the agent's run; a human resolves it as a spec/oracle fix, never as agent improvisation.</td></tr>
+          <tr><td><strong>The ratchet</strong></td><td>The rule that every escaped defect's postmortem must produce a new oracle, rubric line, or architecture rule — as a commit. The system only ever gets stricter.</td></tr>
+          <tr><td><strong>Crucible Console</strong></td><td>The local web app: a stateless view and remote control over the state machine. Never a source of truth.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Intent vs. spec vs. oracle — the distinction that is the crux
+        <span class="label-kind">Opinionated</span>
+      </summary>
+      <div class="drill-body">
+        <p>These three are constantly conflated, and the whole system depends on keeping them apart:</p>
+        <ul>
+          <li><strong>Intent</strong> = the human-level goal, in natural language. <em>What you want.</em></li>
+          <li><strong>Spec</strong> = the sharpened, precise requirement (SHALL/MUST + scenarios). <em>What you said.</em></li>
+          <li><strong>Oracle</strong> = the executable judge that decides pass/fail. <em>What actually decides.</em></li>
+        </ul>
+        <p>
+          Agents are <em>steered</em> by specs but <em>judged</em> only by oracles. Anything in the intent
+          or spec that never became an oracle is, from the agent's perspective, optional. That's why the
+          oracle — not the prose — is the load-bearing artifact.
+        </p>
+      </div>
+    </details>
+
+    <h3>What an oracle actually looks like</h3>
+    <p>
+      The abstract definition lands better with code. Follow one requirement from English, to a
+      precise spec line, to the executable judge — and see why the judge is written as a <em>property</em>
+      (true for <em>all</em> inputs) rather than a single example.
+    </p>
+
+    <details class="drill ex" open>
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: one requirement → spec → oracle, in code
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p><strong>1. Intent</strong> (what a human wants, in plain words):</p>
+        <blockquote style="border-left:3px solid var(--line-strong);margin:0 0 14px;padding:2px 16px;color:var(--ink-soft)">“We should never refund a customer more money than they actually paid.”</blockquote>
+
+        <p><strong>2. Spec</strong> (the sharpened, normative requirement):</p>
+        <div class="code-cap">openspec/changes/partial-cancellation/specs/refund/spec.md</div>
+        <pre><code><span class="k">REQ-PC-2</span>: The sum of all refunds issued against an order
+          SHALL NOT exceed the amount captured for that order.</code></pre>
+
+        <p><strong>3. Oracle</strong> (the executable judge — a jqwik <em>property</em> test):</p>
+        <div class="code-cap">/oracles/refund/RefundInvariants.java  ·  human-owned, agents cannot edit</div>
+        <pre><code><span class="t">@Property</span>                                  <span class="c">// runs on hundreds of generated cases</span>
+<span class="k">void</span> refundsNeverExceedCaptured(
+        <span class="t">@ForAll</span>(<span class="s">"orders"</span>) Order order,        <span class="c">// ANY valid order…</span>
+        <span class="t">@ForAll</span>(<span class="s">"cancellations"</span>) List&lt;Cancel&gt; cancels) {  <span class="c">// …ANY cancellations</span>
+
+    Money refunded = Money.<span class="t">ZERO</span>;
+    <span class="k">for</span> (Cancel c : cancels)
+        refunded = refunded.add(service.cancel(order, c).refund());
+
+    <span class="c">// the invariant the HUMAN cares about — independent of how refunds are computed</span>
+    assertThat(refunded).isLessThanOrEqualTo(order.amountCaptured());
+}</code></pre>
+
+        <p>
+          Two things make this an <em>oracle</em> and not just a test. First, it states the rule
+          <strong>independently of the implementation</strong> — it never re-computes the “expected” refund
+          with the code's own formula, so a bug in that formula can't hide (contrast the vacuous test in the
+          previous section). Second, it's a <strong>property</strong>: the <code>@ForAll</code> generators
+          throw hundreds of orders and discount shapes at it, so it catches whole <em>classes</em> of bug an
+          example like “refund on a $10 item” never would.</p>
+
+        <p>The same requirement can carry more than one oracle. For the highest-stakes rules you'd add a second, independent judge at a different layer — e.g. a database constraint:</p>
+        <div class="code-cap">/oracles/refund/V12__refund_cap.sql  ·  a second, independent oracle</div>
+        <pre><code><span class="c">-- even if application code is wrong, the DB refuses to over-refund</span>
+<span class="k">ALTER TABLE</span> refund_ledger
+  <span class="k">ADD CONSTRAINT</span> refund_within_capture
+  <span class="k">CHECK</span> (total_refunded &lt;= amount_captured);</code></pre>
+
+        <p>And the traceability linter (a Gauntlet gate) refuses to go green unless every SHALL is mapped:</p>
+        <div class="code-cap">oracles.md — the requirement → oracle map</div>
+        <pre><code>| Requirement | Oracle(s)            | What it checks                    |
+|-------------|----------------------|-----------------------------------|
+| REQ-PC-2    | ORA-PC-2a, ORA-PC-2b | Σ refunds ≤ amount captured        |</code></pre>
+
+        <details class="eli5" style="margin-top:18px">
+          <summary class="tag">In plain words</summary>
+          <p>
+            A normal test says “if I refund <em>this one order</em>, I should get <em>this exact number</em>.”
+            An oracle says “<em>no matter what order or discount you throw at me</em>, the refunds can never add
+            up to more than the customer paid.” The second one is a promise about everything, not an example.
+            That's the whole idea.
+          </p>
+        </details>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ PRINCIPLES ============ -->
+<section id="principles">
+  <div class="wrap">
+    <div class="section-kicker">03 — Core principles</div>
+    <h2>The constitution</h2>
+    <p class="subhead">Ten principles. When any design question arises, it is resolved in favor of these.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        All ten rules come from two simple ideas.
+      </p>
+      <p>
+        <strong>One: don't ask the AI to remember the steps — build the steps into the tools.</strong>
+        An AI is like a smart worker who sometimes forgets the checklist. A locked door never forgets.
+        So Crucible uses locked doors, not reminders.
+      </p>
+      <p>
+        <strong>Two: “easy” and “required” are different jobs.</strong> The app makes doing it the right
+        way <em>easy</em>. Git and the checks make doing it the wrong way <em>impossible</em> — even for
+        the boss. Delete the nice app and the locked doors are still locked.
+      </p>
+    </details>
+
+    <div class="cards">
+      <div class="card"><span class="num">Principle 01</span><h4>The loop lives in infrastructure, never in an agent's head</h4><p>Agents are stateless workers invoked at specific states with one job each. The orchestrator is deterministic code — scripts and CI — debuggable with <code>cat</code> and <code>git log</code>.</p></div>
+      <div class="card"><span class="num">Principle 02</span><h4>Hand-offs are artifacts, not messages</h4><p>Each stage consumes files and produces files. “Done” means the output artifact exists and validates — never the agent's self-report.</p></div>
+      <div class="card"><span class="num">Principle 03</span><h4>Convenience and enforcement are separate layers</h4><p>The CLI and Console make the workflow easy; branch protection, CODEOWNERS, and required checks make it impossible not to follow. Deleting the CLI leaves the workflow enforced — just tedious.</p></div>
+      <div class="card"><span class="num">Principle 04</span><h4>Direction emerges from preconditions</h4><p>No component knows the whole flow. Each step refuses to run unless the previous step's artifact exists and validates. Adding a step = adding a precondition.</p></div>
+      <div class="card"><span class="num">Principle 05</span><h4>Agents are judged only by oracles</h4><p>Anything that never became an oracle is optional from the agent's view — and under optimization pressure, optional means gone. Hence: a requirement without an oracle is a wish.</p></div>
+      <div class="card"><span class="num">Principle 06</span><h4>Humans own specs, oracles, and the harness; agents own implementation</h4><p>The protected paths (<code>/specs</code>, <code>/oracles</code>, <code>/harness</code>, <code>/ci</code>, <code>/skills</code>) are CODEOWNERS-guarded and unwritable from implementation branches.</p></div>
+      <div class="card"><span class="num">Principle 07</span><h4>The test bench is deterministic AND tamper-proof</h4><p>Hermetic, reproducible, sandboxed, destroyed after — and the thing under test, which is also an actor with a shell, cannot modify the bench.</p></div>
+      <div class="card"><span class="num">Principle 08</span><h4>Independent verification: the reviewer never shares the author's context</h4><p>Different agent, different inputs (spec + diff + rubric; never the implementer's reasoning), concrete rubric, machine-parseable verdict.</p></div>
+      <div class="card"><span class="num">Principle 09</span><h4>Small diffs, always</h4><p>≤400 changed lines per PR (configurable). Larger work is decomposed into a PR sequence up front. Small diffs make every gate more discriminating and human review tractable.</p></div>
+      <div class="card"><span class="num">Principle 10</span><h4>The ratchet: escaped defects become permanent gates</h4><p>Every postmortem closes with “which new oracle / rubric line / rule prevents recurrence” — and that item is a commit, not a document.</p></div>
+    </div>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: “judged only by oracles” — how an agent reward-hacks, and what stops it
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>
+          An agent under pressure to make a check pass will do the laziest thing that turns the light green.
+          A classic move is to quietly weaken its <em>own</em> test:
+        </p>
+        <div class="code-cap">the agent weakens an assertion to escape a failing check</div>
+        <pre><code><span class="c">// Requirement: the ledger must always balance to exactly zero</span>
+<span class="bad">- assertThat(ledger.balance()).isEqualTo(Money.ZERO);</span>
+<span class="good">+ assertThat(ledger.balance()).isNotNull();</span>   <span class="c">// ← "technically passes" 🙈</span></code></pre>
+        <p>Three separate parts of Crucible make this fail anyway:</p>
+        <ul>
+          <li><strong>The real check is an oracle the agent can't touch.</strong> The balancing rule lives in <code>/oracles</code> (human-owned). The agent can weaken a test it wrote, but not the judge that actually gates the merge.</li>
+          <li><strong>Mutation testing catches weak assertions.</strong> A test that only checks <code>isNotNull()</code> lets almost every injected mutant survive → the mutation gate goes red.</li>
+          <li><strong>The reviewer agent flags it.</strong> A separate agent, looking only at the diff and the spec, sees an assertion that got weaker in a change that claims to add behavior — and raises it.</li>
+        </ul>
+        <p>The lesson of principle 5: don't rely on the agent's good intentions. Make the thing it can't reach be the thing that decides.</p>
+      </div>
+    </details>
+
+    <details class="drill why">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Why cap diffs at ~400 lines? Isn't that just bureaucracy?
+        <span class="label-kind">Why this?</span>
+      </summary>
+      <div class="drill-body">
+        <p>Small diffs aren't a style preference — they make every other part of the system sharper:</p>
+        <ul>
+          <li><strong>Gates get more discriminating.</strong> When mutation testing or the reviewer flags a 40-line PR, the problem is <em>right there</em>. In a 2,000-line PR, a red gate points at a haystack, and the temptation to override it grows.</li>
+          <li><strong>Human review becomes tractable.</strong> The risk-routed 15–20% has to be actually readable in minutes. That only works if diffs are small.</li>
+          <li><strong>Rollback is cheap.</strong> A small merged change that misbehaves in canary can be reverted with near-zero blast radius. Big changes entangle.</li>
+          <li><strong>It forces decomposition up front.</strong> “This needs 900 lines” is really “this is several changes.” Splitting them into a planned sequence surfaces the seams — and the risky one gets routed to a human on its own.</li>
+        </ul>
+        <p>The cap is per-work-order configurable, so genuinely atomic large changes have an escape hatch — but it's a deliberate, logged decision, not the default.</p>
+      </div>
+    </details>
+
+    <div class="rule">
+      <span class="rule-tag">The one operating rule</span>
+      <strong>No code without a work order; no work order without approved oracles</strong> — including
+      hotfixes, including your own “quick” ideas. The loop is kept fast precisely so there is never a reason
+      to go around it.
+    </div>
+  </div>
+</section>
+
+<!-- ============ ARCHITECTURE ============ -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="section-kicker">04 — Architecture &amp; design</div>
+    <h2>How it's built</h2>
+    <p class="subhead">Four layers, a state machine with a gatekeeper on every edge, and a verification stack where each gate catches something the others miss.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>Picture a factory with four floors, bottom to top:</p>
+      <ul>
+        <li><strong>Floor 1 — the building itself.</strong> The walls, the safety rules, the machines. Built once.</li>
+        <li><strong>Floor 2 — the design room.</strong> Humans decide what to make and exactly how it will be inspected.</li>
+        <li><strong>Floor 3 — the assembly line.</strong> The AI builds the thing, then it goes through a long row of inspection machines.</li>
+        <li><strong>Floor 4 — the loading dock.</strong> After the product ships, sensors watch it. If it acts up, it gets pulled back automatically.</li>
+      </ul>
+      <p>
+        And one rule for the whole factory: when a station is done, it puts a real part on the conveyor belt
+        for the next station. Nobody just <em>shouts</em> “it's done!” — you can always point at the part.
+      </p>
+    </details>
+
+    <h3>The four layers</h3>
+    <div class="layers">
+      <div class="layer">
+        <div class="lname">Layer 4 — Runtime verification <span>per deploy</span></div>
+        <p>Canary deploys, SLO monitoring, auto-rollback, postmortem. The ratchet feeds new oracles and rules back down into Layer 1.</p>
+      </div>
+      <div class="layer">
+        <div class="lname">Layer 3 — Execution loop <span>per work order</span></div>
+        <p>Task packaging → ephemeral sandbox → implementer agent → PR → the Gauntlet → reviewer agent → deterministic routing → auto-merge or human review.</p>
+      </div>
+      <div class="layer">
+        <div class="lname">Layer 2 — Spec layer <span>per feature · human-owned</span></div>
+        <p>Proposal → specs → design → <strong>oracles</strong> → tasks. Plus the oracle map and the oracle implementations on a protected path, sealed by human approval commits.</p>
+      </div>
+      <div class="layer l1">
+        <div class="lname">Layer 1 — Foundation <span>built once, evolved deliberately</span></div>
+        <p>Repo structure, CODEOWNERS, branch protection, pinned toolchain image, Gauntlet CI definitions, the harness (CLI, <code>CLAUDE.md</code>, skills, prompts, rubric, sandbox runner), and the pipeline eval suite.</p>
+      </div>
+    </div>
+    <p class="muted">The Crucible Console sits <em>beside</em> all four layers as a stateless view and remote control — it reads state from git + the GitHub API and triggers actions that already exist in the tooling.</p>
+
+    <h3>Who owns what</h3>
+    <p>The cleanest way to hold the whole system in your head: three actors, each with a fixed, non-overlapping job. Nobody reaches into anyone else's lane.</p>
+    <div class="lanes">
+      <div class="lane-col human">
+        <h5>Humans own</h5>
+        <ul>
+          <li>Specs (the requirements)</li>
+          <li>Oracles (the judges)</li>
+          <li>The harness &amp; the gates themselves</li>
+          <li>Risky-PR &amp; sample review</li>
+          <li>Escalation decisions</li>
+        </ul>
+      </div>
+      <div class="lane-col agent">
+        <h5>Agents own</h5>
+        <ul>
+          <li>Implementation code</li>
+          <li>Their own unit tests</li>
+          <li>Drafting specs/oracles <em>for a human to approve</em></li>
+          <li>Writing an escalation when stuck</li>
+        </ul>
+      </div>
+      <div class="lane-col auto">
+        <h5>Machinery owns</h5>
+        <ul>
+          <li>Advancing the state machine</li>
+          <li>Running the Gauntlet</li>
+          <li>Routing PRs (no model call)</li>
+          <li>Merge, canary, rollback</li>
+          <li>Opening the PR (the runner, not the agent)</li>
+        </ul>
+      </div>
+    </div>
+    <p class="muted">The boundary is enforced, not suggested: the human lanes map to CODEOWNERS-protected paths that implementation branches literally cannot write to.</p>
+
+    <h3>The state machine</h3>
+    <p>Each feature is a work order that moves through explicit states. State is stored durably in <code>workorder.yaml</code>, advanced only by the CLI or humans, and cross-checked by CI.</p>
+
+    <div class="term"><b>DRAFT_SPEC</b> → SPEC_APPROVED → ORACLES_AUTHORED → <b>ORACLES_APPROVED</b> → PACKAGED → IMPLEMENTING → PR_OPEN → GATES_GREEN → AI_REVIEWED → ROUTED&#123;AUTO_MERGE | HUMAN_REVIEW&#125; → MERGED → CANARY → DONE → ARCHIVED
+
+<b>Failure edges:</b>  IMPLEMENTING → ESCALATED → (human spec/oracle fix) → back
+                 GATES_RED → IMPLEMENTING (failure output becomes new input)
+                 CANARY_ROLLBACK → postmortem → ratchet commit → new work order</div>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        The gatekeepers table — who is allowed to advance each transition
+        <span class="label-kind">Drill down</span>
+      </summary>
+      <div class="drill-body">
+        <p>This table is the heart of enforcement. <strong>Every transition has a gatekeeper that is not the agent.</strong></p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Transition</th><th>Gatekeeper</th><th>Mechanism</th></tr></thead>
+            <tbody>
+              <tr><td>Draft → Spec approved</td><td>Human</td><td>Merge of the spec delta to a protected path via a PR only the CODEOWNER can approve. Approval is a git commit, not a UI flag.</td></tr>
+              <tr><td>Spec → Oracles authored</td><td>Schema</td><td>The <code>oracles.md</code> artifact exists in the change folder.</td></tr>
+              <tr><td>Oracles → Oracles approved</td><td>Human + linter</td><td>Oracle <em>implementations</em> merged to the protected <code>/oracles</code> path AND the traceability linter green (every SHALL has ≥1 resolving oracle).</td></tr>
+              <tr><td>Approved → Packaged</td><td><code>crucible validate</code></td><td>Refuses unless: work order schema-valid, artifacts done, oracle approval commit present, module map non-empty.</td></tr>
+              <tr><td>Packaged → Implementing</td><td><code>crucible run</code></td><td>Spins the pinned, network-restricted, ephemeral container; injects the state-specific prompt; enforces the iteration budget.</td></tr>
+              <tr><td>Implementing → PR open</td><td>Sandbox runner</td><td>The runner, not the agent, opens the PR with work-order labels.</td></tr>
+              <tr><td>PR → Gates green</td><td>Platform</td><td>GitHub branch protection required checks: the full Gauntlet. Nobody — owner included — can merge around them.</td></tr>
+              <tr><td>Gates → AI reviewed</td><td>Reviewer CI job</td><td>Runs as CI, never “someone remembers to invoke it.” A red verdict blocks merge like a failing test.</td></tr>
+              <tr><td>Reviewed → Routed</td><td>Routing script</td><td>Deterministic: touched-paths ∩ risk list, reviewer flags, diff size. No model call. All clear → auto-merge; any flag → owner added as required reviewer.</td></tr>
+              <tr><td>Merged → Canary → Done</td><td>CD pipeline</td><td>Canary + SLO watch + auto-rollback.</td></tr>
+              <tr><td>Implementing → Escalated</td><td>Agent</td><td>The one transition the agent may trigger: writing a valid <code>escalation.md</code> ends the run. Resolution is always a human spec/oracle change.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: the work order — the file the whole state machine turns on
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>
+          The state isn't in a database or an app — it's a plain YAML file in the repo, advanced only by the
+          CLI or a human and cross-checked by CI. You can read the entire status of a feature with
+          <code>cat</code>:
+        </p>
+        <div class="code-cap">/workorders/OMS-142-partial-cancellation/workorder.yaml</div>
+        <pre><code><span class="t">id</span>: OMS-142
+<span class="t">state</span>: ORACLES_APPROVED           <span class="c"># the current position in the state machine</span>
+<span class="t">change</span>: partial-cancellation     <span class="c"># the OpenSpec change folder (the "content")</span>
+<span class="t">scope</span>:
+  <span class="t">modules</span>: [order/cancel, refund]  <span class="c"># the agent may ONLY touch these paths</span>
+<span class="t">constraints</span>:
+  <span class="t">max_diff_lines</span>: 400            <span class="c"># the small-diffs cap, per work order</span>
+  <span class="t">iteration_budget</span>: 6            <span class="c"># stop-and-escalate instead of thrashing forever</span>
+<span class="t">oracles</span>: [ORA-PC-1a, ORA-PC-2a, ORA-PC-4a, ORA-PC-5a]  <span class="c"># the judges it must pass</span></code></pre>
+        <p>
+          Everything follows from this file. <code>scope.modules</code> is what the work-order-legitimacy gate
+          checks touched paths against. <code>state</code> is what every precondition reads. Because it's just
+          a committed file, <code>git log</code> is a complete, tamper-evident history of how the feature moved.
+        </p>
+        <p>The rest of the hand-off directory carries the other artifacts — each stage <em>produces a file</em>, never a message:</p>
+        <pre><code>/workorders/OMS-142-partial-cancellation/
+  workorder.yaml       <span class="c"># state, scope, constraints, oracle refs</span>
+  escalation.md        <span class="c"># exists ONLY if the agent got stuck</span>
+  review-verdict.json  <span class="c"># the reviewer agent's machine-readable verdict</span>
+  runlog/              <span class="c"># full sandbox transcripts, per attempt (audit trail)</span></code></pre>
+      </div>
+    </details>
+
+    <h3>The Gauntlet — what each gate uniquely catches</h3>
+    <p>Each gate exists because it catches a failure mode the others miss. None is optional; together they are what replaces routine line-by-line human review.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        The cleverest gate is <strong>mutation testing</strong>. Normal tests check the code. Mutation
+        testing checks <em>the tests</em>.
+      </p>
+      <p>
+        Here's the trick: it secretly breaks the code on purpose — changes a plus to a minus, flips an
+        “if” — and then watches. If your tests are any good, at least one should now fail and yell. If you
+        break the code and <em>every test still passes</em>, then the tests were fake all along. This is the
+        main thing stopping an AI from writing tests that pass no matter what.
+      </p>
+    </details>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        All eleven gates and the one thing each is for
+        <span class="label-kind">Drill down</span>
+      </summary>
+      <div class="drill-body">
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Gate</th><th>Failure mode it uniquely catches</th></tr></thead>
+            <tbody>
+              <tr><td>Compile + strict types</td><td>Hallucinated interfaces become compile errors instead of runtime surprises; illegal states made unrepresentable.</td></tr>
+              <tr><td>Style / format</td><td>Removes style from the reviewer agent's job — don't spend model calls on what linters do deterministically.</td></tr>
+              <tr><td>Architecture rules</td><td>Structural erosion across many PRs: layer violations, forbidden dependencies, “only this class may mutate order status.” Where extensibility is mechanically defended.</td></tr>
+              <tr><td>Unit / property / contract tests</td><td>Behavioral correctness, including the human-authored oracles. Property tests catch whole classes that example tests miss.</td></tr>
+              <tr><td><strong>Mutation testing</strong></td><td><strong>Tests the tests.</strong> Vacuous agent-written tests and quietly weakened assertions show up as surviving mutants. The main structural defense against reward-hacking to green.</td></tr>
+              <tr><td>SAST (static security)</td><td>Security flaws with no functional symptom: injection, path traversal, hardcoded secrets, weak crypto. Behavioral tests are blind to these.</td></tr>
+              <tr><td>Dependency scan + allowlist</td><td>Known CVEs, license risk, and hallucinated/typosquatted packages (“slopsquatting”). Agents can't add a dependency that isn't allowlisted.</td></tr>
+              <tr><td>Traceability lint</td><td>A SHALL/MUST with no resolving oracle. Enforces “a requirement without an oracle is a wish” mechanically.</td></tr>
+              <tr><td>Diff-size check</td><td>Oversized changes that make every other gate less discriminating.</td></tr>
+              <tr><td>Work-order legitimacy</td><td>PRs with no work order, in the wrong state, or touching paths outside the module map. This is what makes bypassing the CLI hit a wall.</td></tr>
+              <tr><td>Reviewer agent verdict</td><td>Judgment-only findings: semantic drift from spec, weakened tests mutation missed, suspicious dependency <em>usage</em>, concurrency soundness, PII in logs, scope smell.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="muted">Backing all of it: a pinned image (same locally, in CI, in agent runs), fresh per run, network off except an artifact mirror, permission config that denies protected paths, container as backstop. If the environment is declared and rebuilt from scratch, the only way to green is through the actual code.</p>
+      </div>
+    </details>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: how mutation testing exposes a fake test
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>Suppose the code correctly blocks cancelling a shipped item:</p>
+        <div class="code-cap">the code under test</div>
+        <pre><code><span class="k">if</span> (item.isShipped()) reject();   <span class="c">// shipped items can't be cancelled</span></code></pre>
+        <p>Mutation testing (PIT) makes tiny, deliberate breakages — <em>mutants</em> — and reruns the tests:</p>
+        <div class="code-cap">PIT flips the condition</div>
+        <pre><code><span class="k">if</span> (<span class="bad">!</span>item.isShipped()) reject();  <span class="c">// MUTANT: now rejects the WRONG items</span></code></pre>
+        <ul>
+          <li><span class="badge-ok">Strong suite</span> — a test that actually cancels a shipped item and expects rejection now <strong>fails</strong>. The mutant is “killed.” Good.</li>
+          <li><span class="badge-warn">Vacuous suite</span> — if every test still passes with the logic inverted, the mutant “survived.” Your tests never really checked this rule. The mutation gate goes red and the PR cannot merge.</li>
+        </ul>
+        <p>
+          This is why coverage numbers don't impress Crucible: you can execute a line without checking what it
+          does. Mutation score can't be faked that way — surviving mutants are proof the assertions are hollow.
+          The threshold is ratcheted upward over time (75% → 85%).
+        </p>
+      </div>
+    </details>
+
+    <h3>How a green PR gets routed</h3>
+    <p>Once a PR is green <em>and</em> the reviewer agent has posted its verdict, a deterministic script — <strong>no model call</strong> — decides whether a human needs to look. Same inputs, same route, every time.</p>
+    <div class="diagram">
+      <div class="dtitle">Routing — a pure function of facts already in git/GitHub</div>
+      <div class="vflow">
+        <div class="node auto">Green PR + reviewer verdict posted</div>
+        <div class="down">↓</div>
+        <div class="node">Does it touch a risk path? <small>auth · money · data deletion · public API · deps · concurrency</small></div>
+        <div class="down">↓ &nbsp; <small>…or did the reviewer raise any flag? &nbsp; …or is the diff oversized?</small></div>
+        <div class="split">any “yes”  vs.  all “no”</div>
+        <div class="lanes" style="margin-top:8px;width:100%">
+          <div class="lane-col human" style="grid-column: span 1"><h5>Any yes → Human route</h5><ul><li>Owner added as required reviewer</li><li>~15–20% of PRs</li><li>Merges on human approval</li></ul></div>
+          <div class="lane-col auto" style="grid-column: span 2"><h5>All no → Auto-merge route</h5><ul><li>Auto-merge label applied; merges itself once all checks stay green</li><li>The remaining ~80–85%</li><li>Still subject to a random 10% audit after the fact</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Where the code lives (Model B)</h3>
+    <p>
+      This repo <em>is</em> the framework — reusable machinery, developed conventionally. The software systems
+      you build with it live in <strong>separate consumer repos</strong>, scaffolded and governed by
+      <code>crucible init</code>. Distribution is via an npm CLI, reusable GitHub workflows, and a published
+      toolchain image.
+    </p>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Why framework-and-consumers instead of one self-hosting monorepo?
+        <span class="label-kind">Opinionated</span>
+      </summary>
+      <div class="drill-body">
+        <p>
+          An earlier design (“Model A”) put the machinery and one target system in a single repo that governed
+          itself. The current design (“Model B”, ADR 0001) splits them:
+        </p>
+        <ul>
+          <li><strong>The framework repo</strong> holds the reusable core, gates, harness, schema, and the Console. It's governed conventionally — the owner reviews all PRs.</li>
+          <li><strong>Consumer repos</strong> are your actual software systems. Each gets the governed structure — CODEOWNERS, the Gauntlet CI, the <code>oracle-driven</code> schema, <code>CLAUDE.md</code> — emitted by <code>crucible init</code>.</li>
+        </ul>
+        <p>
+          The win: one framework governs many systems, each isolated, each reproducibly scaffolded — rather than
+          entangling the tool with any one product it builds. The Console is a <em>co-primary</em> deliverable
+          (a thin view over a working core), not a last-minute add-on.
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="section-kicker">05 — How it works, behind the glass</div>
+    <h2>What actually happens when you press a button</h2>
+    <p class="subhead">The Console is a pane of glass. Behind it, every action is a real git commit, a real GitHub PR, and a real CI run — the same things you could do by hand. There is no hidden application state anywhere.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        Think of a self-checkout machine at a shop. The screen is friendly, but it isn't <em>keeping</em> your
+        money — the till and the bank do that. The screen just presses the same buttons a cashier would.
+      </p>
+      <p>
+        Crucible works the same way. The pretty app is the screen. The real record — who approved what, which
+        tests passed, what state your feature is in — lives in <strong>git and GitHub</strong>, the same place
+        your code already lives. If the app vanished this second, every fact would still be sitting there,
+        untouched. Nothing important is ever <em>inside</em> the app.
+      </p>
+    </details>
+
+    <h3>The six things going on under the hood</h3>
+    <p>You don't need to think about any of these to use Crucible — but this is the machinery that makes the guarantee real rather than merely promised.</p>
+
+    <div class="two-col">
+      <div class="card">
+        <h4>1 · Git is the database</h4>
+        <p>There is no server holding “the truth.” A feature's state, its approvals, the reviewer's verdict, the full sandbox transcript — each is a committed file or a GitHub object. That's why the app can be stateless: it has nothing to lose.</p>
+      </div>
+      <div class="card">
+        <h4>2 · The Console only reads &amp; delegates</h4>
+        <p>It reads state with <code>git</code> + the GitHub API, and the <em>only</em> way it ever writes is by shelling out to the same <code>crucible</code> CLI or opening a PR — never a private back-channel. Every button shows its exact terminal equivalent.</p>
+      </div>
+      <div class="card">
+        <h4>3 · The CLI advances, CI enforces</h4>
+        <p><code>crucible</code> moves a work order forward in <code>workorder.yaml</code> and checks preconditions — but it does not <em>enforce</em>. It's a convenience layer. Skip it and you simply hit the wall in the next two rows.</p>
+      </div>
+      <div class="card">
+        <h4>4 · The platform is the wall</h4>
+        <p>GitHub branch protection makes the Gauntlet a set of <strong>required checks</strong>. No one — not even the repo owner — can merge around them. This is why the guarantee holds against a determined human, not just a well-behaved one.</p>
+      </div>
+      <div class="card">
+        <h4>5 · The sandbox is sealed &amp; detached</h4>
+        <p><code>crucible run</code> spins a fresh, pinned container with the network off and <code>/oracles</code>, <code>/specs</code>, <code>/ci</code> mounted read-only. It runs <em>detached</em> — killing the Console never aborts a run in flight.</p>
+      </div>
+      <div class="card">
+        <h4>6 · Everything runs as CI, unprompted</h4>
+        <p>The Gauntlet, the reviewer agent, and the routing script all run as GitHub Actions jobs triggered by the PR — never “someone remembers to invoke it.” A red reviewer verdict blocks a merge exactly like a failing test.</p>
+      </div>
+    </div>
+
+    <h3>Where every fact actually lives</h3>
+    <p>The whole system is easier to trust once you see there are only two places state can hide — and the app is not one of them.</p>
+    <div class="lanes">
+      <div class="lane-col human">
+        <h5>In git (your repo)</h5>
+        <ul>
+          <li><code>workorder.yaml</code> — the state itself</li>
+          <li>Specs &amp; the oracle implementations</li>
+          <li>Approval commits (a review <em>is</em> a commit)</li>
+          <li><code>review-verdict.json</code></li>
+          <li><code>runlog/</code> — every sandbox transcript</li>
+        </ul>
+      </div>
+      <div class="lane-col agent">
+        <h5>In GitHub (the platform)</h5>
+        <ul>
+          <li>Pull requests &amp; their merge status</li>
+          <li>Required-check results (the 11 dots)</li>
+          <li>Branch-protection rules themselves</li>
+          <li>Review approvals &amp; requested reviewers</li>
+          <li>Routing labels (auto-merge / needs-human)</li>
+        </ul>
+      </div>
+      <div class="lane-col auto">
+        <h5>In the Console</h5>
+        <ul>
+          <li>Nothing durable. It holds no state.</li>
+          <li>It <em>reads</em> the two columns to the left…</li>
+          <li>…and <em>writes</em> only via the CLI + PR flow.</li>
+          <li>Restart it, move machines, close the tab —</li>
+          <li>you lose zero information.</li>
+        </ul>
+      </div>
+    </div>
+    <p class="muted">This is the “statelessness doctrine,” and it isn't aspirational — it's covered by negative guarantee tests that fail the build if the server ever writes state anywhere but git, the GitHub API, or the approval-PR flow.</p>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: follow one click — what “Approve Spec” really does
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>
+          You click one friendly button. Behind the glass it is exactly this sequence of ordinary git + GitHub
+          operations — nothing you couldn't type yourself (and the <code>⌘</code> popover shows you the commands):
+        </p>
+        <div class="code-cap">what the Console shells out to do</div>
+        <pre><code><span class="c"># 1. put the drafted spec delta on a branch</span>
+<span class="k">git</span> checkout -b spec/OMS-142-partial-cancellation
+<span class="k">git</span> add openspec/changes/partial-cancellation
+<span class="k">git</span> commit -m <span class="s">"spec(OMS-142): partial cancellation"</span>
+
+<span class="c"># 2. open a PR to the CODEOWNERS-protected specs path</span>
+<span class="k">gh</span> pr create --base main --fill
+
+<span class="c"># 3. CODEOWNERS requires YOU on this path — you approve.</span>
+<span class="c">#    that approval is itself a durable git object, not a UI flag.</span>
+<span class="k">gh</span> pr review --approve  &amp;&amp;  <span class="k">gh</span> pr merge --squash</code></pre>
+        <p>
+          After the merge, nothing “told” the system the state changed. The next time anything reads
+          <code>workorder.yaml</code> plus the merged commit, the feature simply <em>is</em> in
+          <code>SPEC_APPROVED</code>. State is derived from git, not stored beside it.
+        </p>
+        <div class="code-cap">and because it's all git, the audit trail is free</div>
+        <pre><code><span class="k">git</span> log --oneline -- workorders/OMS-142-partial-cancellation/workorder.yaml
+<span class="s">a1c9f22</span> OMS-142: ORACLES_APPROVED   <span class="c"># ← your oracle approval, as a commit</span>
+<span class="s">7e0b418</span> OMS-142: SPEC_APPROVED      <span class="c"># ← the click above</span>
+<span class="s">3d5aa90</span> OMS-142: DRAFT_SPEC         <span class="c"># ← crucible new</span></code></pre>
+      </div>
+    </details>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Why bother being stateless? Isn't a normal app database simpler?
+        <span class="label-kind">Why this?</span>
+      </summary>
+      <div class="drill-body">
+        <p>A separate database would be simpler to build — and would quietly undo the whole point:</p>
+        <ul>
+          <li><strong>No second source of truth to drift.</strong> If approvals lived in an app DB, a bug or an outage could disagree with git about what was approved. With one source, disagreement is impossible.</li>
+          <li><strong>The fallback is total.</strong> Because the app owns nothing, “the app is down” is never “work is blocked.” Every action has a typed equivalent, so a crash costs ergonomics, not progress.</li>
+          <li><strong>Tamper-evidence for free.</strong> An approval that is a signed git commit can't be silently flipped in a database row. The history <em>is</em> the audit log.</li>
+          <li><strong>The guarantee doesn't depend on the app being correct.</strong> Enforcement lives in CI and branch protection, so even a buggy Console cannot let unverified code through.</li>
+        </ul>
+      </div>
+    </details>
+
+    <div class="diagram">
+      <div class="dtitle">The flow of a single feature through the real systems (not the app)</div>
+      <div class="vflow">
+        <div class="node human">You + Console <small>read git/GitHub · click actions</small></div>
+        <div class="down">↓ &nbsp; <small>shells out to</small></div>
+        <div class="node auto"><code>crucible</code> CLI + git <small>advances state in workorder.yaml · commits · opens PRs</small></div>
+        <div class="down">↓ &nbsp; <small>pushes / opens PR</small></div>
+        <div class="node auto">GitHub <small>PRs · branch protection (required checks) · Actions</small></div>
+        <div class="down">↓ &nbsp; <small>Actions trigger</small></div>
+        <div class="node auto">CI — Gauntlet · reviewer job · routing script <small>the real enforcement; no human invocation</small></div>
+        <div class="down">↓ &nbsp; <small>crucible run spawns (detached)</small></div>
+        <div class="node agent">Sealed sandbox <small>pinned image · no network · protected paths read-only</small></div>
+        <div class="down">↺ &nbsp; <small>every result lands back in git/GitHub — the loop reads from there again</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DECISIONS ============ -->
+<section id="decisions">
+  <div class="wrap">
+    <div class="section-kicker">06 — The decisions &amp; the opinions</div>
+    <h2>Why it's shaped this way</h2>
+    <p class="subhead">Crucible is deliberately opinionated. Here are the load-bearing choices and what was rejected.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        The biggest opinion in one line: <strong>the rules don't live in the app.</strong>
+      </p>
+      <p>
+        Imagine a diet app. If the only thing stopping you from eating cake is a friendly reminder,
+        you'll eat the cake on a bad day. Crucible instead puts the locks in git and GitHub themselves —
+        the deep plumbing everything runs on. So the same walls stand even for the boss, even at 2 a.m.,
+        even when you're in a hurry. There is no “skip” button to find.
+      </p>
+    </details>
+
+    <details class="drill" open>
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        The decision log — every load-bearing choice
+        <span class="label-kind">Drill down</span>
+      </summary>
+      <div class="drill-body">
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>Decision</th><th>Rationale</th><th>Rejected alternative</th></tr></thead>
+            <tbody>
+              <tr><td>Orchestration = git + CI + a thin CLI; state machine encoded in artifacts</td><td>Deterministic, auditable via git history, debuggable with <code>cat</code>/<code>git log</code>; matches solo/small-team scale.</td><td>Temporal / LangGraph / agent swarms (premature complexity); a mega-prompt that self-enforces the workflow (LLMs don't reliably self-enforce).</td></tr>
+              <tr><td>Enforcement in platform primitives, not the CLI</td><td>Enforcement must survive bypassing the tooling — including by the owner tempted by a quick fix. CLI = convenience; CI = legitimacy.</td><td>CLI-only enforcement (skippable = convention, not system).</td></tr>
+              <tr><td>Java for target systems</td><td>Owner's expertise for risk-routed review; best-in-class machine-checkable ecosystem (ArchUnit, PIT, Error Prone, jqwik); strict typing turns hallucinated interfaces into compile errors.</td><td>Trend-driven language choice.</td></tr>
+              <tr><td>Human review as a precision instrument: risk-routing + 10% sampling</td><td>Full coverage doesn't scale and adds little over strong gates; zero coverage leaves semantic/security blind spots. The risk list is mechanical, so routing is repeatable.</td><td>“Never review PRs”; “review everything forever.”</td></tr>
+              <tr><td>Oracles authored/approved by human before implementation; agents can't modify them</td><td>Independence of the judge from the judged; prevents tests-describe-the-bugs; the one artifact where human attention has maximal leverage.</td><td>Agent-authored post-hoc tests as sole verification.</td></tr>
+              <tr><td>Mutation testing as a required merge gate</td><td>Coverage is gameable by agents; mutation score is not. The main structural defense against vacuous tests.</td><td>Line-coverage thresholds alone.</td></tr>
+              <tr><td>Keep OpenSpec; extend via a native schema fork</td><td>Its schema-driven workflow is a declarative version of Crucible's precondition chain; templates give a home for oracle-authoring instructions.</td><td>Enforcing oracles via prose instructions alone (policy without mechanism).</td></tr>
+              <tr><td>Reviewer agent: separate context, concrete rubric, machine-parseable verdict, runs as CI</td><td>Shared context → correlated errors; vague prompts → vague approvals; human-invoked review → sometimes skipped.</td><td>Same-context self-review; freeform review text; manual invocation.</td></tr>
+              <tr><td>Hermetic sandboxes: pinned image, no network, fresh per run, protected paths denied</td><td>Closes agents' degenerate paths to green structurally; kills “flaky because environment”; the bench must be tamper-proof because the thing under test has a shell.</td><td>Shared dev environments; trust-based path restrictions.</td></tr>
+              <tr><td>Console is stateless, local-first, built on a working core</td><td>Two sources of truth would break the enforcement model; terminal fallback must be total.</td><td>Console-with-a-database acting as the workflow engine.</td></tr>
+              <tr><td>Escalation protocol: a structured file ends the run; humans resolve via spec/oracle change</td><td>Prevents thrashing and agent improvisation on ambiguity; ambiguity is a spec bug.</td><td>Unlimited retries; agent “best judgment” on ambiguity.</td></tr>
+              <tr><td>The ratchet: postmortems close with a gate commit</td><td>Reliability must be monotonic; converts operational pain into permanent verification.</td><td>Postmortems as documents.</td></tr>
+              <tr><td>Calibration period: owner reviews everything for ~2 weeks, then mechanically retreats</td><td>The rubric, risk list, and diff caps must be tuned against the agent's <em>actual</em> failure modes, not hypothetical ones.</td><td>Turning on auto-merge from day one.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
+    <h3>The human's role, steady-state</h3>
+    <p>Once calibrated, the owner's work is exclusively judgment work:</p>
+    <ul>
+      <li><strong>Author/approve specs</strong>, with an agent as drafting partner that surfaces edge cases.</li>
+      <li><strong>Author or line-by-line review oracles</strong> — the real “code review,” done up front on the highest-leverage artifact.</li>
+      <li><strong>Review risk-routed PRs (~15–20%)</strong>: auth, money movement, data deletion/migration, public API surface, dependency additions, concurrency — plus anything the reviewer agent flags.</li>
+      <li><strong>Random 10% sample audits</strong> of auto-merged PRs — statistical process control on the pipeline itself.</li>
+      <li><strong>Resolve escalations</strong> — always as a spec/oracle fix.</li>
+      <li><strong>Improve the harness</strong> — rubric lines, architecture rules, skills, prompts — driven by the ratchet.</li>
+    </ul>
+    <p class="muted">Line-by-line human review is mandatory for exactly one category with no exceptions: <strong>the harness itself and the Gauntlet definitions</strong> — the trusted computing base of everything downstream.</p>
+  </div>
+</section>
+
+<!-- ============ HOW TO USE ============ -->
+<section id="use">
+  <div class="wrap">
+    <div class="section-kicker">07 — How to use Crucible</div>
+    <h2>From an empty repo to shipping software</h2>
+    <p class="subhead">First, a one-time setup that turns a fresh repo into a Crucible-governed project and gets the Console running. Then the same short loop, every feature, forever.</p>
+
+    <h3>Part 1 — One-time project setup</h3>
+    <p>You do this once per software system. It scaffolds the governed structure into a new repo, wires up enforcement, and gets you a running Console pointed at the project.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        Setting up is like installing the referees and the rulebook before the game starts. You run one command
+        (<code>crucible init</code>) and it drops in all the rules, the automatic judges, and the “only the owner
+        can change the rules” locks. Then you turn on the dashboard (the Console) and point it at your project.
+        After that, you never set up again — you just build features.
+      </p>
+    </details>
+
+    <h4>What you need first — the prerequisites</h4>
+    <p>Crucible reuses tools you very likely already have. Nothing here is bespoke; it deliberately rides on <code>git</code>, GitHub, Docker, and the CLIs you already log into.</p>
+    <div class="two-col">
+      <div class="card">
+        <h4><code>git</code> + a git repo</h4>
+        <p>The project must be a git repository — <code>init</code> refuses otherwise. Run <code>git init</code> (or clone an empty repo) first. Git is the database, so this is non-negotiable.</p>
+      </div>
+      <div class="card">
+        <h4><code>gh</code> — GitHub CLI, logged in</h4>
+        <p>Authenticated via <code>gh auth login</code>. The Console reuses your existing <code>gh auth token</code> — no separate PAT needed. Used to open PRs, apply branch protection, and set the reviewer secret.</p>
+      </div>
+      <div class="card">
+        <h4><code>claude</code> — Claude Code, logged in</h4>
+        <p>The spec/oracle chat and the implementer run on Claude. The Console reuses your logged-in host <code>claude</code>; if it's set up, you need no token in <code>.env</code> for local use.</p>
+      </div>
+      <div class="card">
+        <h4>Node.js <span style="opacity:.7;font-weight:400">≥ 22</span></h4>
+        <p>Runs the <code>@crucible/cli</code> (the <code>crucible</code> binary) and the Console server + web app. The CLI declares <code>engines: node &gt;=22</code>. Node 21 still runs, but prints a harmless <code>ExperimentalWarning: Importing JSON modules</code> — match 22 to silence it. If you use <strong>nvm</strong>, note that the <code>crucible</code>, <code>openspec</code> and <code>node</code> binaries all live in the <em>active version's</em> bin, so run every step in a shell where the right version is selected (<code>nvm use 22</code>).</p>
+      </div>
+      <div class="card">
+        <h4><code>openspec</code> — the SDD engine</h4>
+        <p>Install globally with <code>npm i -g @fission-ai/openspec</code>. <strong>Required before <code>crucible init</code></strong> — <code>init</code> shells out to <code>openspec init</code> to lay down the spec-driven structure. If <code>openspec</code> isn't on <code>PATH</code>, <code>init</code> fails (see the troubleshooting note below).</p>
+      </div>
+      <div class="card">
+        <h4>Docker</h4>
+        <p>The sandbox runner (<code>crucible run</code>) executes the agent inside the pinned toolchain image with the network off. Also lets you run the Console as a localhost container if you prefer.</p>
+      </div>
+      <div class="card">
+        <h4>A GitHub repo you own</h4>
+        <p>Push access and permission to set <strong>branch protection</strong> — that platform-level wall is what makes the required checks unbypassable. (The java profile also wants a JDK to generate the Gradle wrapper.)</p>
+      </div>
+    </div>
+
+    <div class="rule" style="margin:18px 0">
+      <span class="rule-tag">Check yourself in ten seconds</span>
+      <code>git --version</code> · <code>gh auth status</code> · <code>claude --version</code> · <code>node --version</code> · <code>openspec --version</code> · <code>docker --version</code> — if all six answer (and <code>node</code> is ≥ 22), you're ready to init.
+    </div>
+
+    <h4>Initialize the project</h4>
+    <ol class="steps">
+      <li>
+        <h4>Create (or enter) the consumer repo · <span style="color:var(--accent-ink)">You</span></h4>
+        <p>Each software system lives in its own repo (that's Model B). Start it as a git repo.</p>
+        <span class="term"><b>Terminal:</b> mkdir order-system && cd order-system && git init</span>
+      </li>
+      <li>
+        <h4>Install <code>openspec</code> · <span style="color:var(--accent-ink)">You</span></h4>
+        <p><code>crucible init</code> drives <code>openspec</code> under the hood, so it must be installed and on <code>PATH</code> first.</p>
+        <span class="term"><b>Terminal:</b> npm i -g @fission-ai/openspec</span>
+      </li>
+      <li>
+        <h4>Install the CLI · <span style="color:var(--accent-ink)">You</span></h4>
+        <p>The <code>crucible</code> binary is not yet published to npm. Today you install it from the framework repo with <code>npm link</code>, which builds it and puts <code>crucible</code> on your <code>PATH</code> (as a symlink to the local build, so rebuilds pick up automatically).</p>
+        <span class="term"><b>Terminal:</b> cd path/to/crucible/packages/cli && npm ci && npm run build && npm link</span>
+        <span class="term"><b>Verify:</b> which crucible && crucible --version   <span style="opacity:.7"># resolves under the active node's bin</span></span>
+        <p class="muted"><b>nvm note:</b> the link lives in the <em>active</em> node version's bin. If you switch versions with <code>nvm use</code>, re-run <code>npm link</code> under the new one. <span style="opacity:.8">(Once published, this becomes a plain <code>npm i -g @crucible/cli</code>.)</span></p>
+      </li>
+      <li>
+        <h4>Run <code>crucible init</code> · <span style="color:var(--accent-ink)">You</span></h4>
+        <p>One command turns the repo into a governed project: it runs <code>openspec init</code>, installs the <code>oracle-driven</code> schema, and emits CODEOWNERS, the Gauntlet CI wrapper, the branch-protection ruleset, <code>CLAUDE.md</code>, the Crucible skills, the directory skeleton, and <code>crucible.yaml</code>. It never overwrites existing files.</p>
+        <span class="term"><b>Terminal:</b> crucible init --owner your-gh-handle   <span style="opacity:.7"># --lang java (default)</span></span>
+      </li>
+      <li>
+        <h4>Finish the wiring · <span style="color:var(--accent-ink)">You</span></h4>
+        <p><code>init</code> prints the exact next steps. In order:</p>
+        <span class="term"><b>1.</b> gradle wrapper --gradle-version 9.6.1   <span style="opacity:.7"># java profile only — see the bootstrap note below</span></span>
+        <span class="term"><b>2.</b> git add -A && git commit -m "chore: crucible init" && git push -u origin main</span>
+        <span class="term"><b>3.</b> settings/apply.sh   <span style="opacity:.7"># GitHub governance (wall + labels + perms) — see the plan note below</span></span>
+        <span class="term"><b>4.</b> claude setup-token   <span style="opacity:.7"># mint a Claude token, once</span></span>
+        <span class="term"><b>5.</b> gh secret set CLAUDE_CODE_OAUTH_TOKEN   <span style="opacity:.7"># for the reviewer CI job</span></span>
+        <p class="muted">Put that same token in a local <code>.env</code> as <code>CLAUDE_CODE_OAUTH_TOKEN=…</code> so <code>crucible run</code> can drive the sandbox on your machine. If you drive everything through the Console with a logged-in host <code>claude</code>, steps 4–5 are only needed for the <em>CI</em> reviewer job (GitHub Actions) — they aren't used locally. <strong>But note:</strong> once branch protection is on, <code>review / reviewer-verdict</code> is a <em>required</em> check, so without this secret no PR can merge through the wall. Local drafting works; the merge tail does not. Set the secret before you expect a PR to land.</p>
+      </li>
+    </ol>
+
+    <div class="rule" style="margin:16px 0">
+      <span class="rule-tag">Bootstrap note — the Gradle wrapper (step 1)</span>
+      Step 1 assumes a <code>gradle</code> binary is already installed, which is a chicken-and-egg: a fresh machine has only a JDK. Get one wrapper, once, either way — then it's committed and every later build uses <code>./gradlew</code>:
+      <span class="term" style="margin-top:8px"><b>a) install Gradle:</b> brew install gradle   <span style="opacity:.7"># or sdkman: sdk install gradle 9.6.1</span></span>
+      <span class="term"><b>b) or no install — generate from the distribution:</b></span>
+      <span class="term" style="opacity:.85">curl -L -o /tmp/g.zip https://services.gradle.org/distributions/gradle-9.6.1-bin.zip && unzip -q /tmp/g.zip -d /tmp</span>
+      <span class="term" style="opacity:.85">mkdir /tmp/wg && (cd /tmp/wg && echo 'rootProject.name="w"' > settings.gradle.kts && /tmp/gradle-9.6.1/bin/gradle wrapper --gradle-version 9.6.1)</span>
+      <span class="term" style="opacity:.85">cp -r /tmp/wg/gradlew /tmp/wg/gradlew.bat /tmp/wg/gradle ./   <span style="opacity:.7"># into your repo; needs JDK 17+</span></span>
+      <span style="display:block;margin-top:6px;opacity:.8">Generate in an <em>empty</em> dir with a one-line <code>settings.gradle.kts</code> so Gradle doesn't try to resolve your project's plugins. (Gradle 9 refuses to run any task, even <code>wrapper</code>, without a settings file.)</span>
+    </div>
+
+    <div class="rule" style="margin:16px 0">
+      <span class="rule-tag">Add a <code>.gitignore</code> before you commit</span>
+      The java profile does not currently emit one, so the first <code>./gradlew build</code> leaves <code>.gradle/</code> and <code>build/</code> as untracked clutter. Add a minimal ignore first:
+      <span class="term" style="margin-top:8px">printf '.gradle/\nbuild/\n**/build/\n.env\n' &gt; .gitignore</span>
+    </div>
+
+    <div class="rule warn" style="margin:16px 0">
+      <span class="rule-tag">Plan note — branch protection needs a public repo or a paid plan (step 3)</span>
+      <code>settings/apply.sh</code> installs a <strong>ruleset</strong> for required checks — the enforcement wall. GitHub only allows rulesets/branch protection on a <strong>private</strong> repo with <strong>Pro / Team / Enterprise</strong>; a private free repo returns <code>403 "Upgrade to GitHub Pro or make this repository public"</code>. Options: (a) make the repo <strong>public</strong> — rulesets are free there; (b) upgrade the plan; (c) proceed <em>without</em> the wall for now — the Gauntlet CI still runs on every PR and the whole Console flow works, but merges aren't hard-blocked, so it's not tamper-proof until protection is on. The script's <em>other</em> actions (labels, workflow-token = write, auto-merge) work on any plan; because the script is <code>set -e</code>, a ruleset 403 aborts it before those run, so apply them separately or re-run after enabling protection.
+    </div>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Troubleshooting: <code>init</code> fails with a blank <code>environment error: openspec init failed:</code>
+        <span class="label-kind">Gotcha</span>
+      </summary>
+      <div class="drill-body">
+        <p>The message after the colon is empty because <code>init</code> only surfaces the child command's <em>stderr</em>, and <code>openspec</code> prints to <em>stdout</em>. The blank error almost always means <strong><code>openspec</code> could not be found</strong> on the <code>PATH</code> of the shell that launched <code>crucible</code> — typically because a different (or default) node version is active and the global <code>openspec</code>/<code>crucible</code> links live under a <em>different</em> nvm version's bin.</p>
+        <p><b>Fix:</b> run everything in one shell with the right toolchain resolved:</p>
+        <span class="term"><b>1.</b> nvm use 22   <span style="opacity:.7"># the version you linked crucible + installed openspec under</span></span>
+        <span class="term"><b>2.</b> which crucible openspec   <span style="opacity:.7"># both must resolve before you continue</span></span>
+        <span class="term"><b>3.</b> crucible init --owner your-gh-handle</span>
+        <p class="muted">Sanity check that <code>openspec</code> itself works in that repo: <code>openspec init --tools claude --force</code> should exit 0. If it does but <code>crucible init</code> doesn't, it's a PATH/version mismatch, not openspec.</p>
+      </div>
+    </details>
+
+    <h4>Launch the Console</h4>
+    <p>The Console is a local, stateless web app — the primary way to drive the workflow. Run it from the framework repo and point it at your project. <strong>If <code>gh</code> and <code>claude</code> are already set up, you need no <code>.env</code></strong> — it reuses your host logins, and the top bar shows the resolved sources (e.g. <code>gh ✓ (gh cli) · claude ✓ (host)</code>).</p>
+    <ol class="steps">
+      <li>
+        <h4>Point it at your project · <span style="color:var(--accent-ink)">You</span></h4>
+        <p>One Console instance binds to one project. Set the repo path (or just run from inside the repo).</p>
+        <span class="term"><b>Terminal:</b> export CRUCIBLE_REPO=/path/to/order-system</span>
+      </li>
+      <li>
+        <h4>Install &amp; start · <span style="color:var(--accent-ink)">You</span></h4>
+        <p>Install once, then start. Production mode serves the built app on a single port.</p>
+        <span class="term"><b>Install:</b> npm run console:install</span>
+        <span class="term"><b>Production:</b> npm run console:build && npm run console:start   <span style="opacity:.7"># serves http://localhost:7317</span></span>
+        <span class="term"><b>Or dev:</b> npm run console   <span style="opacity:.7"># server :7317 + Vite :7318</span></span>
+      </li>
+      <li>
+        <h4>Open it — mind the port · <span style="color:var(--accent-ink)">You</span></h4>
+        <p><strong>The port depends on which mode you started.</strong> Production serves everything from the one Express server; dev adds a separate Vite server and you open <em>that</em>:</p>
+        <div class="rule" style="margin:12px 0">
+          <span class="rule-tag">Which port?</span>
+          <code>npm run console:build && console:start</code> (production) → open <b>http://localhost:7317</b> ·
+          <code>npm run console</code> (dev, hot reload) → open <b>http://localhost:7318</b> (Vite; it proxies the API to :7317).
+        </div>
+        <p>Three routes cover the whole loop (shown on <code>:7317</code>; swap to <code>:7318</code> in dev):</p>
+        <div class="term"><b><a href="http://localhost:7317/" style="color:var(--accent-ink)">http://localhost:7317/</a></b>  →  the <b>Board</b> (every work order by state)
+<b>http://localhost:7317/new</b>    →  <b>New Feature</b> (start a spec)
+<b>http://localhost:7317/queue</b>  →  <b>Review Queue</b> (PRs routed to you)</div>
+        <p class="muted">Keyboard: <code>g b</code> board · <code>g q</code> queue · <code>j</code>/<code>k</code> select · <code>enter</code> open. Every action also shows its terminal equivalent in the <code>⌘</code> popover — so you can always fall back to the CLI.</p>
+      </li>
+    </ol>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: what <code>crucible init</code> actually emits
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>The command is chatty about exactly what it did, and ends with your to-do list:</p>
+        <div class="code-cap">$ crucible init --owner your-gh-handle</div>
+        <pre><code><span class="c">(node:NNNNN) ExperimentalWarning: Importing JSON modules is an experimental feature …   # node 21 only — harmless</span>
+<span class="good">openspec</span>: initialized (tools: claude)
+<span class="good">schema</span>: installed oracle-driven (proposal → specs → design → oracles → tasks)
+<span class="good">schema</span>: set as project default in openspec/config.yaml
+<span class="good">scaffold</span>: copied 10 file(s)
+<span class="good">dirs</span>: workorders, oracles/properties, oracles/contracts, oracles/constraints, oracles/arch, src
+<span class="good">java-profile</span>: copied 9 file(s)   <span class="c"># build.gradle.kts, ci/, gate plugins, starter oracles</span>
+<span class="good">skills</span>: installed 3 into .claude/skills/
+<span class="good">crucible.yaml</span>: written
+
+next steps:
+  1. generate the Gradle wrapper (java profile): gradle wrapper --gradle-version 9.6.1
+  2. review + commit the scaffold, push to GitHub
+  3. apply branch protection: settings/apply.sh
+  4. mint a Claude subscription token (once): claude setup-token
+  5. add it as the reviewer-agent repo secret: gh secret set CLAUDE_CODE_OAUTH_TOKEN
+     and, for local `crucible run`, put CLAUDE_CODE_OAUTH_TOKEN=&lt;token&gt; in .env
+  6. start your first feature: crucible new &lt;ID&gt; --title &lt;t&gt; --change &lt;slug&gt;</code></pre>
+        <p>The governed structure it leaves in your repo:</p>
+        <pre><code>order-system/
+  crucible.yaml                    <span class="c"># framework version · language · toolchain pin · owner</span>
+  .github/CODEOWNERS               <span class="c"># the trusted computing base — only YOU approve these paths</span>
+  .github/workflows/gauntlet.yml   <span class="c"># thin wrapper → the framework's reusable Gauntlet</span>
+  .github/pull_request_template.md <span class="c"># carries the machine-parsed Work-Order-ID</span>
+  settings/branch-protection.json  <span class="c"># 11 required checks + owner bypass = the wall</span>
+  settings/apply.sh
+  build.gradle.kts settings.gradle.kts <span class="c"># java profile — build + gate plugins</span>
+  ci/                              <span class="c"># dependency-allowlist · semgrep · gates · risk-paths</span>
+  openspec/                        <span class="c"># the oracle-driven SDD schema, set as default</span>
+  .claude/skills/                  <span class="c"># crucible-writing-oracles · escalation-protocol · conventions</span>
+  CLAUDE.md                        <span class="c"># the operating rule, vocabulary, and policy for agents</span>
+  oracles/{properties,contracts,constraints,arch}/
+  workorders/   src/</code></pre>
+      </div>
+    </details>
+
+    <details class="drill">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Why reuse my host <code>gh</code> and <code>claude</code> instead of asking for tokens?
+        <span class="label-kind">Why this?</span>
+      </summary>
+      <div class="drill-body">
+        <p>The Console is meant to be plug-and-play on your own machine, and to hold as little as possible:</p>
+        <ul>
+          <li><strong>No new secret to manage.</strong> If you can already <code>gh</code> and <code>claude</code> from your terminal, the Console just borrows those sessions (<code>gh auth token</code>, your logged-in <code>claude</code>). Fewer copies of a token is fewer ways to leak one.</li>
+          <li><strong>Localhost only.</strong> The server binds to <code>127.0.0.1</code> — it's a personal instrument, not a shared service, so reusing your local identity is exactly right.</li>
+          <li><strong>Explicit override still exists.</strong> Need a different identity, a service token, or a different port? Drop a <code>console/.env</code> and it takes precedence. The default is just the friction-free path.</li>
+        </ul>
+      </div>
+    </details>
+
+    <hr class="soft" />
+
+    <h3>Part 2 — The everyday loop, step by step</h3>
+    <p class="subhead">One feature, end to end. Roughly 60–90 minutes of human time — almost all of it in the spec and oracles. Everything after launch is largely unattended.</p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>Your whole day is four things:</p>
+      <ul>
+        <li><strong>1. Say what you want.</strong> Chat with the AI until the feature is written down as clear, exact rules.</li>
+        <li><strong>2. Approve the tests.</strong> Look at the automatic judges the AI drafted and say yes. This is the one step you cannot skip.</li>
+        <li><strong>3. Press start and walk away.</strong> The AI writes the code; the machines check it.</li>
+        <li><strong>4. Only if it's risky, do a 15-minute read.</strong> Most changes you never have to look at.</li>
+      </ul>
+      <p>That's it. You make the important calls; the machines do the grinding.</p>
+    </details>
+
+    <p class="muted">Legend:
+      <span class="chip" style="background:var(--accent-soft);color:var(--accent-ink);border-color:#eeddd3">You — a human action</span>
+      <span class="chip" style="background:var(--ok-bg);color:var(--ok);border-color:#cfe4d5">Agent — an AI action</span>
+      <span class="chip" style="background:var(--bg-sunk);border-color:var(--line-strong)">Auto — deterministic machinery</span>
+    </p>
+
+    <div class="diagram">
+      <div class="dtitle">The whole pipeline at a glance — where a human touches it (orange) vs. where it runs itself</div>
+      <div class="vflow">
+        <div class="node human">Propose the feature</div>
+        <div class="down">↓</div>
+        <div class="node human">Draft &amp; approve the spec</div>
+        <div class="down">↓</div>
+        <div class="node gate">✋ Approve the oracles <small>the one mandatory gate — no code before this</small></div>
+        <div class="down">↓</div>
+        <div class="node auto">Package &amp; launch <small>crucible validate → package → run</small></div>
+        <div class="down">↓</div>
+        <div class="node agent">Agent implements in a sealed sandbox <small>no network · fresh · protected paths denied</small></div>
+        <div class="down">↓</div>
+        <div class="node auto">The Gauntlet — 11 required gates <small>red → agent gets the failure back &amp; retries</small></div>
+        <div class="down">↓</div>
+        <div class="node agent">Reviewer agent posts a verdict <small>separate context · concrete rubric</small></div>
+        <div class="down">↓</div>
+        <div class="node auto">Deterministic routing <small>risky? → you. otherwise → auto-merge</small></div>
+        <div class="down">↓ &nbsp; <small>(only risky/flagged PRs)</small></div>
+        <div class="node human">15-min review of the risky slice</div>
+        <div class="down">↓</div>
+        <div class="node auto">Merge → canary → SLO watch → done</div>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <h4>Create the work order · <span style="color:var(--accent-ink)">You</span> · ~2 min</h4>
+        <p>Open the Console → <strong>New Feature</strong>. Fill in an ID, title, and change slug. Click <strong>Create</strong>. The work-order file is scaffolded.</p>
+        <span class="term"><b>Terminal:</b> crucible new OMS-142 --title "Partial cancellation" --change partial-cancellation</span>
+        <span class="statepill">State: DRAFT_SPEC</span>
+      </li>
+      <li>
+        <h4>Draft the spec conversationally · <span style="color:var(--accent-ink)">You + Agent</span> · 20–40 min</h4>
+        <p>In the spec chat panel, start the change. The agent drafts the proposal and spec deltas, and <em>probes edge cases</em> — “when the last item is cancelled, does the order become CANCELLED? A cancel racing the shipping cutoff?” You answer, push back, decide. The rendered spec updates live, with SHALL/MUST lines highlighted. You're aiming for sharp normative statements.</p>
+        <p>When satisfied, click <strong>Approve Spec</strong> — the Console opens a PR to the protected path; CODEOWNERS requires you; you approve; it merges. Your approval is now a durable git commit.</p>
+        <span class="statepill">State: SPEC_APPROVED</span>
+      </li>
+      <li>
+        <h4>Draft &amp; approve the oracles · <span style="color:var(--accent-ink)">You + Agent</span> · 15–30 min</h4>
+        <p>The agent drafts the traceability table (<code>oracles.md</code>) and drafts oracle <em>implementations</em> on a branch — property tests, concurrency tests, DB constraints — one or more per requirement.</p>
+        <p>Open <strong>Oracle Review</strong>. <em>This is your real code review, done up front.</em> Any unmapped requirement shows red at the top. Read each oracle's source line by line and ask: <em>would this fail if the requirement were violated in the ways I care about?</em> Then click <strong>Approve Oracles</strong>.</p>
+        <div class="rule" style="margin:14px 0"><span class="rule-tag">Mandatory gate</span>Your approval of the oracles is required before any code is written. This is the guarantee against agent-authored vacuous verification.</div>
+        <span class="statepill">State: ORACLES_APPROVED</span>
+      </li>
+      <li>
+        <h4>Finish planning artifacts · <span style="color:var(--accent-ink)">You</span> · ~5 min</h4>
+        <p>Continue until <code>design.md</code> and <code>tasks.md</code> exist (tasks unblocks now that oracles are done). Skim both — you're checking scope sanity, not wording. <code>tasks.md</code> is the agent's own checklist.</p>
+      </li>
+      <li>
+        <h4>Package &amp; launch · <span style="color:var(--accent-ink)">You</span> · ~2 min</h4>
+        <p>Open <strong>Run Monitor</strong>. Click <strong>Validate</strong> — the precondition report renders inline (schema valid, artifacts done, oracles merged, module map non-empty). Then <strong>Package</strong>, then <strong>Start Implementation</strong>.</p>
+        <span class="term"><b>Terminal:</b> crucible validate OMS-142 --advance && crucible package OMS-142 && crucible run OMS-142</span>
+        <span class="statepill">State: PACKAGED → IMPLEMENTING</span>
+      </li>
+      <li>
+        <h4>Walk away · <span style="color:var(--ok)">Auto + Agent</span> · 0 min</h4>
+        <p>A fresh sandbox spins up from the pinned image, no network, bundle read-only. The agent works through <code>tasks.md</code>, writes its own tests underneath your oracles, and iterates. It <em>cannot</em> touch <code>/oracles</code>, <code>/specs</code>, or <code>/ci</code>. On green, the runner (not the agent) opens the PR.</p>
+        <p>The Gauntlet runs all eleven gates. If mutation testing fails at 71%, that output goes back as input to a new attempt; the agent strengthens its tests; the next push is green. The reviewer agent (separate context) posts its verdict.</p>
+        <span class="statepill">State: PR_OPEN → GATES_GREEN → AI_REVIEWED</span>
+      </li>
+      <li>
+        <h4>Your 15-minute review — only if routed to you · <span style="color:var(--accent-ink)">You</span></h4>
+        <p>Routing is deterministic: if the PR touches a risk path (e.g. <code>refund/**</code>) or carries a reviewer flag, it comes to you. Otherwise it auto-merges. In the <strong>Review Queue</strong> you get three panes: the diff, the reviewer's verdict table, and the spec. The gates already proved behavior — you read only for what machines can't judge: is the transaction boundary <em>sensible</em>, is this a design you want to live with? Approve.</p>
+        <span class="statepill">State: ROUTED → MERGED → CANARY → DONE</span>
+      </li>
+      <li>
+        <h4>Archive · <span style="color:var(--accent-ink)">You</span> · ~1 min</h4>
+        <p>In chat: <code>/opsx:archive</code>. The guard confirms all PRs are merged, then merges the spec deltas into the living specs.</p>
+        <span class="statepill">State: ARCHIVED</span>
+      </li>
+    </ol>
+
+    <p><strong>What you did NOT do:</strong> read the implementation while it was written, babysit the sandbox, or manually check any gate. <strong>What you DID do:</strong> made every judgment call — requirements, oracle quality, the one risky design decision.</p>
+
+    <hr class="soft" />
+
+    <h3>The fallbacks — nothing is trapped in the app</h3>
+    <p>
+      The Console is a <em>view and remote control</em>, never the state machine itself. All authoritative
+      state lives in git + GitHub. This isn't a nice-to-have; it's a tested acceptance criterion.
+    </p>
+
+    <details class="eli5">
+      <summary class="tag">ELI5</summary>
+      <p>
+        If the nice app crashes, you lose nothing. Every button in it is just a shortcut for a command you
+        can type yourself. And everything it shows you is read straight from git and GitHub, which you can
+        open on your own.
+      </p>
+      <p>
+        It's like a fancy TV remote: if the remote breaks, the TV still has buttons on it. The app is the
+        remote. Git is the TV. That's what “git is the database” means — the real stuff lives in git, not
+        in the app.
+      </p>
+    </details>
+
+    <div class="two-col">
+      <div class="card">
+        <h4>Console down / not yet built</h4>
+        <p>Run the identical state machine through its native interfaces: <code>crucible new</code>, then Claude Code in the repo for the spec/oracle chat, approve via <code>gh pr create</code> + CODEOWNER merge, then <code>crucible validate / package / run</code>. The Gauntlet and reviewer never depended on the Console. The GitHub PR page already shows the reviewer verdict and the same eleven check dots.</p>
+      </div>
+      <div class="card">
+        <h4>The agent gets stuck (escalation)</h4>
+        <p>When the spec is ambiguous or contradictory, the agent stops — it does not thrash to its budget — and writes <code>escalation.md</code> with the blocking requirements and a set of trade-off options. A notification fires. <strong>You decide, then fix it as a spec/oracle change</strong>, never as a code workaround. Re-validate, re-run. Ambiguity is a spec bug; the fix is always upstream.</p>
+      </div>
+      <div class="card">
+        <h4>A defect escapes to production</h4>
+        <p>The hotfix goes <em>through</em> the loop, never around it: a small work order, oracle-first. The crucial move — <strong>confirm the new oracle fails against current <code>main</code> before the fix</strong>. A fix oracle that doesn't fail first proves nothing. Then the agent's fix is judged by a test that demonstrably catches the bug.</p>
+      </div>
+      <div class="card">
+        <h4>The ratchet closes the loop</h4>
+        <p>Every postmortem's mandatory closing field is <em>“Ratchet commit.”</em> Ask: should a gate or the rubric have caught this? If so, add the rubric line or rule — a one-line PR. From that commit forward, the reviewer asks it on every relevant diff, forever. The system is now stricter than before the bug existed.</p>
+      </div>
+    </div>
+
+    <details class="drill ex">
+      <summary>
+        <svg class="caret" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Example: what an escalation looks like
+        <span class="label-kind">Example</span>
+      </summary>
+      <div class="drill-body">
+        <p>
+          The agent discovers two approved rules that can't both be true. Instead of guessing — or thrashing
+          until its iteration budget runs out — it writes one file and stops. The file lays out the conflict
+          and the real options, but makes <em>no decision</em>:
+        </p>
+        <div class="code-cap">/workorders/OMS-155-auto-release-holds/escalation.md</div>
+        <pre><code><span class="t"># Escalation — OMS-155</span>
+Attempt 3 of 6. Run halted.
+
+<span class="t">Blocking:</span> REQ-AR-2  vs  ORA-SETTLE-1
+<span class="t">Conflict:</span> REQ-AR-2 says release the payment hold within 5 minutes
+  of fulfillment, but ORA-SETTLE-1 requires ALL ledger mutations to
+  happen inside the nightly settlement batch. Both cannot hold.
+
+<span class="t">Options:</span>
+  A) Relax REQ-AR-2 to "by next settlement batch"
+  B) Add a real-time ledger path with a new invariant
+  C) Release the hold immediately, post the ledger entry at settlement</code></pre>
+        <p>
+          A notification fires. The human picks (say) option C — a genuine product decision that must never be
+          agent improvisation — and resolves it <strong>upstream, as a spec/oracle change</strong>, then re-runs
+          against an unambiguous spec. The escalation file, the decision, and the amended spec all become
+          permanent git history: six months later you'll know exactly why holds release immediately but settle
+          nightly.
+        </p>
+      </div>
+    </details>
+
+    <div class="diagram">
+      <div class="dtitle">The ratchet — how a defect makes the system permanently stricter</div>
+      <div class="vflow">
+        <div class="node">A defect escapes to production</div>
+        <div class="down">↓</div>
+        <div class="node human">Postmortem — mandatory field: “Ratchet commit”</div>
+        <div class="down">↓</div>
+        <div class="node human">Commit a new oracle / rubric line / architecture rule</div>
+        <div class="down">↓</div>
+        <div class="node auto">That gate now runs on every relevant PR — forever</div>
+        <div class="down">↺ &nbsp; <small>the bug's whole class can never recur; the system only tightens</small></div>
+      </div>
+    </div>
+
+    <hr class="soft" />
+
+    <h3>Steady-state cheat sheet</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Situation</th><th>What you do</th></tr></thead>
+        <tbody>
+          <tr><td>New feature</td><td><strong>New Feature</strong> → spec chat → <strong>Approve Spec</strong> → oracle review → <strong>Approve Oracles</strong> → <strong>Start Implementation</strong></td></tr>
+          <tr><td>“Where is everything?”</td><td>The <strong>Board</strong> (or <code>crucible status</code>)</td></tr>
+          <tr><td>Notification: PR needs you</td><td><strong>Review Queue</strong> or the GitHub PR page — read diff + verdict + spec; approve or request changes</td></tr>
+          <tr><td>Notification: escalation</td><td>Read the options, decide, fix the spec/oracle, re-validate and re-run</td></tr>
+          <tr><td>Weekly hygiene</td><td><code>crucible audit --sample 0.1</code> → skim sampled auto-merged PRs; archive done changes</td></tr>
+          <tr><td>Escaped defect</td><td>Hotfix work order (oracle-first, prove it fails on <code>main</code>) + postmortem + ratchet commit</td></tr>
+          <tr><td>Harness / rule change</td><td>Ordinary PR labeled <code>harness-change</code> — touches protected paths, so it requires your CODEOWNERS review by construction; evals run automatically</td></tr>
+          <tr><td>Console broken / away from machine</td><td>Terminal + GitHub UI are the same state machine</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rule">
+      <span class="rule-tag">The rule that keeps it all working</span>
+      No code without a work order, no work order without approved oracles — including hotfixes, including
+      your own “quick” ideas. The loop is fast so that going around it never wins.
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="section-kicker">08 — FAQ</div>
+    <h2>Frequently asked questions</h2>
+    <p class="subhead">The questions that come up on first contact with the model.</p>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Isn't this just TDD?</summary>
+      <div class="a"><p>It borrows TDD's mechanism (checks before code) but not its granularity. It's closer to Design by Contract + BDD: business rules and system-level properties, authored by a human, holding across all features. The agent is still free to do classic red-green-refactor TDD in its own inner loop underneath the oracles.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> If the AI writes the code, who writes the tests?</summary>
+      <div class="a"><p>Two layers. The <strong>oracles</strong> — the authoritative tests that judge the requirement — are authored or line-by-line reviewed and approved by a <em>human</em>, before any code exists, and are unmodifiable by agents. The agent then writes its own additional unit tests <em>underneath</em> those oracles as it implements. Mutation testing keeps the agent's tests honest.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> What stops an agent from just gaming the checks?</summary>
+      <div class="a"><p>Several layers stacked deliberately. Oracles it can't touch. Mutation testing that breaks the code and demands a test scream (catching weakened assertions and vacuous tests). A hermetic, network-off, fresh-per-run sandbox that closes degenerate paths like installing a different library or mutating shared state. A work-order legitimacy check that rejects any write outside the declared module map. And an adversarial reviewer with a separate context. Gaming one gate still leaves the others.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Why put enforcement in git/CI instead of the app?</summary>
+      <div class="a"><p>Because enforcement has to survive someone bypassing the tooling — including the owner, tempted by a quick fix on a bad day. If the only guardrail is a convenient app, the first shortcut erodes the system. So the app is <em>convenience</em> and branch protection + CODEOWNERS + required checks are <em>legitimacy</em>. Delete the app and the workflow is still enforced — just more tedious.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Does a human still read any code?</summary>
+      <div class="a"><p>Yes — but as a precision instrument, not a coverage instrument. Line-by-line review is kept for a mechanically-identified high-risk slice (~15–20%: auth, money, data deletion, public APIs, dependency additions, concurrency), plus anything the reviewer agent flags, plus a random 10% audit sample. And one category is <em>always</em> reviewed line-by-line: the harness and the Gauntlet definitions themselves — the trusted computing base.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> What happens when the spec is ambiguous or contradictory?</summary>
+      <div class="a"><p>The agent escalates — it writes a structured <code>escalation.md</code> with the conflict and a set of trade-off options, and its run ends. It does <em>not</em> improvise. A human makes the product decision and resolves it as a spec/oracle change. Ambiguity is treated as a spec bug, and the fix is always upstream, never a downstream workaround.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Can I do a quick hotfix outside the process?</summary>
+      <div class="a"><p>No — and that's the point. Hotfixes go through the loop too, oracle-first, with the extra discipline of proving the new oracle fails on current <code>main</code> before the fix. The loop is deliberately fast enough that “going around it” would save minutes and cost the guarantee. There is no privileged path, not even for the owner.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Why Java?</summary>
+      <div class="a"><p>Two reasons. It's the owner's area of expertise, which matters because the human's remaining review is high-consequence judgment work. And it has a best-in-class machine-checkable ecosystem — ArchUnit for architecture, PIT for mutation testing, Error Prone for strict typing, jqwik for property tests — which turns hallucinated interfaces into compile errors and makes the gates sharp. The framework's concepts aren't Java-specific, but the reference target is.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> What if the Console breaks mid-feature?</summary>
+      <div class="a"><p>You lose nothing. Every Console action has a terminal equivalent, and every fact it displays is read from git + GitHub, which you can open directly. The “kill the Console mid-workflow and complete every operation from terminal + GitHub UI with no data loss” drill is an explicit acceptance criterion. Git is the database; there is no second source of truth to lose.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Why not use a workflow engine like Temporal or an agent swarm?</summary>
+      <div class="a"><p>Premature complexity for solo/small-team scale. Git + CI + a thin CLI is deterministic, auditable via git history, and debuggable with <code>cat</code> and <code>git log</code>. The whole design keeps model calls <em>out</em> of the control flow — routing and orchestration are plain scripts — precisely so the loop is reproducible. A mega-prompt that self-enforces the workflow was rejected for the same reason: LLMs don't reliably self-enforce multi-step processes.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> How does it avoid getting <em>worse</em> over time?</summary>
+      <div class="a"><p>The ratchet. Every escaped defect's postmortem must produce a new oracle, rubric line, or architecture rule — as a commit, not a note. The system only ever gets stricter. And the harness itself has a pipeline eval suite — benchmark tasks re-run on any model, prompt, or skill change — so quality regressions in the tooling are caught before they ship.</p></div>
+    </details>
+
+    <details class="faq">
+      <summary><span class="q">Q</span> Do I turn on auto-merge from day one?</summary>
+      <div class="a"><p>No. There's a calibration period — roughly two weeks — where the owner reviews everything, so the rubric, risk list, and diff caps get tuned against the agent's <em>actual</em> failure modes rather than hypothetical ones. Trust in the gates is earned by watching them catch things you would have caught, and only then do you mechanically retreat to sampling.</p></div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ DICTIONARY ============ -->
+<section id="dictionary">
+  <div class="wrap">
+    <div class="section-kicker">09 — Mini-dictionary</div>
+    <h2>The words, decoded</h2>
+    <p class="subhead">Every unfamiliar or jargon-y term on this page, with its plain dictionary meaning <em>and</em> what it specifically means inside Crucible.</p>
+
+    <div class="dict">
+
+      <div class="entry">
+        <div class="term-h">ArchUnit <span class="pos">proper noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A Java library for writing tests that assert facts about a codebase's <em>architecture</em> (which package may depend on which, etc.).</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The architecture gate. It encodes rules like “only <code>OrderStateMachine</code> may change an order's status” or “the web layer may not import the database layer,” so that structure can't quietly erode across hundreds of agent PRs.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Auto-rollback <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Automatically undoing a software release when health signals turn bad, without waiting for a human.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The Layer-4 safety net: if a canary breaches its SLO, the deploy is reverted automatically, and the incident feeds the ratchet.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Branch protection / required status check <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>GitHub settings that forbid merging to a branch until named checks pass and rules (like required reviewers) are satisfied.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>Where enforcement actually lives — <em>not</em> in the app. Nobody, the owner included, can merge around the Gauntlet, because the platform itself refuses.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Canary deploy <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Releasing a change to a small slice of traffic first — the “canary in the coal mine” — and watching it before a full rollout.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The first runtime (Layer 4) check after merge: the change serves a little real traffic under SLO monitoring before it reaches everyone.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">CODEOWNERS <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A GitHub file that maps file paths to the people whose approval is required to change those paths.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The mechanism that makes <code>/specs</code>, <code>/oracles</code>, and <code>/harness</code> human-approval-only — and literally unwritable from an agent's implementation branch.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Crucible <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A heat-resistant vessel in which metals or other substances are melted and purified at very high temperatures.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The whole system: a container of enforcement that never yields, inside which agents do fast, high-volume work — and out of which nothing passes unverified.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">CVE <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>“Common Vulnerabilities and Exposures” — an entry in a public catalog of a known, identified security vulnerability.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>What the dependency-scan gate checks for: a PR that pulls in a package with a known CVE (or a risky license) cannot go green.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Deterministic <span class="pos">adjective</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Producing the same output from the same input every time, with no randomness or hidden variation.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The property the whole control flow is designed for. Routing and orchestration make <strong>no model calls</strong>, so the same work order always moves the same way — reproducible and debuggable with <code>cat</code> and <code>git log</code>.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Ephemeral <span class="pos">adjective</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Lasting for a very short time; transitory.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The sandbox is created fresh for a single run and destroyed afterward, so nothing — no cached state, no leftover file — carries between runs.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Escalation <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Referring a matter to a higher authority for a decision.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A structured file (<code>escalation.md</code>) an agent writes when the spec is ambiguous or self-contradictory. It ends the run and hands the decision to a human — the agent never improvises past ambiguity.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">The Gauntlet <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Historically, an ordeal in which someone passes between two rows of people who strike them; figuratively, a demanding series of trials to get through.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The full set of required CI checks — eleven gates — that every PR must survive to merge. Together they replace routine line-by-line human review.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Harness <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A set of straps and fittings used to control or direct an animal or a person.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>Everything around the model that shapes its behavior: <code>CLAUDE.md</code>, skills, prompt templates, the sandbox runner, permission config, the CLI. Treated as a product — versioned, reviewed, regression-tested.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Hermetic <span class="pos">adjective</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Sealed so completely that no outside air or influence can get in; airtight.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A build or sandbox that uses only declared, pinned inputs — no network, no ambient machine state — so results can't drift, and the code under test can't reach outside to cheat its way to green.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Idempotent <span class="pos">adjective</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Of an operation: producing the same result whether it's applied once or many times.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A common requirement worth an oracle — e.g., firing the same cancellation request five times must still yield exactly one refund. A property/concurrency test proves it.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Mutation testing <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A technique that deliberately introduces small faults (“mutants”) into code to measure how well a test suite detects them.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A required gate (PIT). Surviving mutants prove the tests are vacuous or the assertions weakened — the main structural defense against an agent reward-hacking its way to green.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Oracle <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A source believed to give wise, authoritative answers or judgments.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A machine-executable judge of one requirement — a property test, contract test, DB constraint, or rule — that decides pass/fail with no human in the loop. <em>“A requirement without an oracle is a wish.”</em></p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Orchestrator <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Something that coordinates many separate parts into a single coherent whole.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>Deliberately <em>not</em> a smart engine: just git + CI + a thin CLI. The “loop” is plain deterministic scripts, so it can be inspected and replayed rather than trusted.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Property test <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A test that asserts some property holds across many automatically-generated inputs, instead of checking one fixed example.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The preferred shape for an oracle — “for <em>any</em> order, refunds never exceed the amount captured” — because it catches whole classes of bug that a single example (“a $10 item”) would miss.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Ratchet <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A device with angled teeth that allows motion in only one direction and prevents it from slipping back.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The rule that every escaped defect must produce a new oracle, rubric line, or architecture rule — as a commit. Strictness only ever increases; the system can't slip backward.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Reward hacking <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>(Machine learning) An agent satisfying the literal letter of its objective in an unintended, degenerate way that misses the point.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The behavior most gates are pointed at: weakening an assertion, mocking away a failing component, or pinning a different library “to make the check pass.” Hermetic sandboxes and mutation testing close these paths.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">SAST <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>“Static Application Security Testing” — analyzing source code for security flaws <em>without running it</em>.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A Gauntlet gate (Semgrep). It catches injection, path traversal, hardcoded secrets, and weak crypto — vulnerabilities with no functional symptom that behavioral tests are blind to.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">SDD / OpenSpec <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>SDD = “Spec-Driven Development,” a workflow where written specifications drive the implementation. OpenSpec is one such tool.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>OpenSpec is the SDD mechanism Crucible builds on. Crucible forks its schema to insert <code>oracles</code> as a mandatory artifact. Slogan: <em>“OpenSpec provides direction; Crucible's CI provides legitimacy.”</em></p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Slopsquatting <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>(Neologism) Registering malicious packages under names that AI models tend to <em>hallucinate</em>, so that an AI “imports” one by mistake.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>A specific supply-chain risk the dependency allowlist + scan gate exists to stop: agents can't pull in a package that isn't explicitly allowlisted.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">SLO <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>“Service Level Objective” — a target for a reliability metric, e.g. “99.9% of requests complete under 200 ms.”</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The thresholds a canary is judged against. A breach is what triggers auto-rollback at Layer 4.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">State machine <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>A model in which something is always in exactly one of a finite set of states and moves between them only along defined transitions.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>How every feature is modeled: a work order moves <code>DRAFT_SPEC → … → ARCHIVED</code>, and <em>every</em> transition has a gatekeeper that is not the agent.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Traceability <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>The ability to follow the links of something through each step of a process.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The mapping from every SHALL/MUST requirement to the oracle(s) that judge it. A linter fails the build if any requirement is left unmapped — enforcing “a requirement without an oracle is a wish.”</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Trusted computing base <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>(Security) The set of components that must be correct for a system's guarantees to hold at all.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>The harness and the Gauntlet definitions themselves — the one category of code a human reviews line-by-line, always, because everything downstream trusts it.</p>
+      </div>
+
+      <div class="entry">
+        <div class="term-h">Vacuous verification <span class="pos">noun</span></div>
+        <p class="def plain"><span class="lbl">Dictionary</span>Checking that looks rigorous but actually confirms nothing meaningful.</p>
+        <p class="def ours"><span class="lbl">In Crucible</span>Agent-written tests that describe what the code <em>does</em> rather than what it <em>should</em> do — forty green tests encoding one misunderstanding. Caught by human-owned oracles plus mutation testing.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>
+      <strong style="color:var(--ink)">Crucible</strong> — a container of enforcement that never yields.<br>
+      Humans author the judges; agents author the code; git guarantees the rest.
+    </div>
+    <div class="muted">
+      Reference: <code>CRUCIBLE-CONCEPT.md</code> · <code>ADR&nbsp;0001</code> · <code>USAGE-WALKTHROUGHS.md</code>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
