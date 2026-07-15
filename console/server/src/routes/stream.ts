@@ -50,17 +50,22 @@ export function streamRoutes(cfg: Config): Router {
   r.post("/spec-chat", (req, res) => {
     sseHeaders(res);
     const turns = (req.body?.turns ?? []) as ChatTurn[];
+    let done = false;
     const cancel = streamSpecChat(
       cfg,
       turns,
       (text) => send(res, "chunk", { text }),
       (err) => {
+        done = true;
         if (err) send(res, "error", { message: err });
         else send(res, "done", {});
         res.end();
       },
     );
-    req.on("close", cancel);
+    // Kill claude only if the CLIENT actually disconnects mid-stream. Bind to the
+    // RESPONSE close, not req: for a POST, `req` emits "close" as soon as Express
+    // finishes reading the body — which would kill claude the instant it spawns.
+    res.on("close", () => { if (!done) cancel(); });
   });
 
   return r;
