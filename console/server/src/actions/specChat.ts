@@ -51,6 +51,9 @@ export function streamSpecChat(
   const child = spawn("claude", ["-p", buildPrompt(turns), "--output-format", "text"], {
     cwd: cfg.repoPath,
     env,
+    // Close stdin: headless `claude -p` otherwise blocks ~3s waiting for stdin, and
+    // that silent window lets the streaming POST drop (→ child killed → "claude exited null").
+    stdio: ["ignore", "pipe", "pipe"],
   });
   child.stdout.on("data", (d) => onChunk(String(d)));
   let stderr = "";
