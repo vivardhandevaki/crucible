@@ -18,6 +18,17 @@ short: what, why, and any pointer. Promote to an issue/PR when picked up.
 
 ## Framework hardening
 
+- **Governance-PR gates are noisy (spec/oracle approvals show red).** The Console's
+  Approve Spec / Approve Oracles PRs touch protected paths and are merged by the owner via
+  the ruleset bypass, but all four implementation gates (`legitimacy`, `traceability`,
+  `diff-size`, `reviewer-verdict`) go RED on them — there is no `Work-Order-ID` in the PR
+  body and the work order is still `DRAFT_SPEC`, so the gates reject by construction.
+  Merging then relies on owner bypass, leaving four red checks on every governance PR.
+  Cleaner: have the Console label approval PRs (e.g. `spec-approval`/`harness-change`) *and*
+  teach the gates to treat labeled / spec-only PRs as neutral-green, so governance PRs pass
+  honestly instead of via bypass. Surfaced during the first end-to-end Console run (PR #1).
+  See `console/server/src/actions/approve.ts` + `packages/cli/src/gates/{legitimacy,traceability,diffsize}.ts`.
+
 - **Cache NVD data in the `cve` job.** Skipped `actions/cache` for the NVD DB to avoid a
   wrong pinned-SHA break; add it (keyed weekly) so the scan is fast on repeat runs even
   keyless. `.github/workflows/gauntlet-java.yml` (`cve` job).
