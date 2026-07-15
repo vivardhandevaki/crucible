@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, type BoardCard } from "../lib/api";
 import { CheckDots, Cmd, EmptyState } from "../components";
 import { useListNav } from "../lib/keys";
+import { useSetWorkflow } from "../lib/workflow";
 
 const COLUMNS = [
   "DRAFT_SPEC", "SPEC_APPROVED", "ORACLES_AUTHORED", "ORACLES_APPROVED",
@@ -11,6 +12,7 @@ const COLUMNS = [
 ];
 
 export function Board() {
+  useSetWorkflow({ section: "Board" });
   const navigate = useNavigate();
   const [cards, setCards] = useState<BoardCard[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -36,34 +38,40 @@ export function Board() {
 
   return (
     <>
-      <div className="row" style={{ justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Board <span className="muted" style={{ fontSize: 12, fontWeight: 400 }}>{cards.length} work orders</span></h1>
+      <div className="pagehead">
+        <h1>Board <span className="muted" style={{ fontSize: 13, fontWeight: 400 }}>· {cards.length} work orders</span></h1>
         <button onClick={load}>Refresh <Cmd cmd="crucible status" /></button>
       </div>
       <div className="board">
         {activeCols.map((state) => (
           <div className="col" key={state}>
-            <h3>{state.replace(/_/g, " ")} · {byState(state).length}</h3>
-            {byState(state).map((c) => {
-              const idx = flat.indexOf(c);
-              return (
-                <div key={c.id} className={`card ${idx === sel ? "sel" : ""}`} onClick={() => open(c)}>
-                  <div className="id">{c.id}</div>
-                  <div className="title">{c.title}</div>
-                  <div className="meta">
-                    <CheckDots pr={c.pr} />
-                    <span className="spacer" />
-                    {c.escalated && <span className="badge esc">escalated</span>}
-                    <span className="badge">{c.ageDays}d</span>
+            <div className="col-head">
+              <span className="phasetag" />
+              <h3>{state.replace(/_/g, " ")}</h3>
+              <span className="count">{byState(state).length}</span>
+            </div>
+            <div className="stagger">
+              {byState(state).map((c) => {
+                const idx = flat.indexOf(c);
+                return (
+                  <div key={c.id} className={`card ${idx === sel ? "sel" : ""}`} onClick={() => open(c)}>
+                    <div className="id">{c.id}</div>
+                    <div className="title">{c.title}</div>
+                    <div className="meta">
+                      <CheckDots pr={c.pr} />
+                      <span className="spacer" />
+                      {c.escalated && <span className="badge esc">escalated</span>}
+                      <span className="badge">{c.ageDays}d</span>
+                    </div>
+                    {c.pr && <div style={{ marginTop: 6 }}><a href={c.pr.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>#{c.pr.number}{c.pr.merged ? " merged" : ""}</a></div>}
                   </div>
-                  {c.pr && <div style={{ marginTop: 4 }}><a href={c.pr.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>#{c.pr.number}{c.pr.merged ? " merged" : ""}</a></div>}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
-      <p className="muted" style={{ fontSize: 12, marginTop: 16 }}>
+      <p className="hint">
         <kbd>g</kbd> <kbd>b</kbd> board · <kbd>g</kbd> <kbd>q</kbd> queue · <kbd>j</kbd>/<kbd>k</kbd> select · <kbd>enter</kbd> open
       </p>
     </>
